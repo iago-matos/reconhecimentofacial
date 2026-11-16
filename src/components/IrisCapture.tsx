@@ -195,7 +195,9 @@ export default function IrisCapture({ title, onResult, onCancel }: Props) {
         : d < ISO_ENROL_DIAMETER
           ? `Íris ≈ ${Math.round(d)} px — bom`
           : `Íris ≈ ${Math.round(d)} px — ótimo`;
-  const sizeTone = !live || d < MIN_DIAMETER ? "bg-destructive/80" : d < ISO_AUTH_DIAMETER ? "bg-accent/90 text-accent-foreground" : "bg-success/90";
+  // Indicadores de captura usam a escala neutra (o verde fica reservado ao que o policial confirma).
+  const sizeTone =
+    !live || d < MIN_DIAMETER ? "bg-destructive text-destructive-foreground" : d < ISO_AUTH_DIAMETER ? "bg-accent text-accent-foreground" : "bg-foreground text-background";
 
   return (
     <div className="space-y-3">
@@ -205,7 +207,7 @@ export default function IrisCapture({ title, onResult, onCancel }: Props) {
         janela refletindo no olho. Peça para <b>abrir bem os olhos</b> e olhar para a câmera.
       </Notice>
 
-      <div className="relative mx-auto aspect-[3/4] max-h-[60svh] w-full overflow-hidden rounded-lg border-2 border-primary/50 bg-muted">
+      <div className="relative mx-auto aspect-[3/4] max-h-[46svh] w-full overflow-hidden rounded-xl border border-border bg-muted">
         <video
           ref={videoRef}
           autoPlay
@@ -213,14 +215,14 @@ export default function IrisCapture({ title, onResult, onCancel }: Props) {
           muted
           className={`h-full w-full object-cover ${facing === "user" ? "-scale-x-100" : ""}`}
         />
-        <div className="pointer-events-none absolute inset-x-[6%] inset-y-[8%] rounded-[45%] border-2 border-dashed border-primary/60" />
+        <div className="pointer-events-none absolute inset-x-[6%] inset-y-[8%] rounded-[45%] border-2 border-dashed border-foreground/50" />
         <div className="pointer-events-none absolute inset-x-[18%] top-[36%] flex justify-between">
-          <span className="h-8 w-8 rounded-full border-2 border-primary/70" />
-          <span className="h-8 w-8 rounded-full border-2 border-primary/70" />
+          <span className="h-8 w-8 rounded-full border-2 border-foreground/60" />
+          <span className="h-8 w-8 rounded-full border-2 border-foreground/60" />
         </div>
         {ready && (
           <div className="absolute inset-x-2 top-2 flex flex-wrap justify-center gap-1 text-xs font-semibold">
-            <span className={`rounded px-2 py-1 text-white ${sizeTone}`}>{sizeMsg}</span>
+            <span className={`rounded-md px-2 py-1 ${sizeTone}`}>{sizeMsg}</span>
             {live && !live.eyesOpen && <span className="rounded bg-accent/90 px-2 py-1 text-accent-foreground">Olhos pouco abertos</span>}
             {live && !live.centered && <span className="rounded bg-accent/90 px-2 py-1 text-accent-foreground">Centralize o rosto</span>}
           </div>
@@ -319,16 +321,25 @@ export function IrisCaptureReport({
             <div className="flex items-center justify-between gap-2">
               <h3 className="text-base">{EYE_LABEL[e.side]}</h3>
               {q && (
-                <span className={`rounded px-2 py-0.5 text-xs font-semibold ${q.grade === "boa" ? "bg-success/80" : q.grade === "aceitavel" ? "bg-accent text-accent-foreground" : "bg-destructive text-destructive-foreground"}`}>
+                <span className={`rounded-md px-2 py-0.5 text-sm font-bold ${q.grade === "boa" ? "bg-foreground text-background" : q.grade === "aceitavel" ? "bg-accent text-accent-foreground" : "bg-destructive text-destructive-foreground"}`}>
                   Qualidade {GRADE_TEXT[q.grade]}
                 </span>
               )}
             </div>
-            {e.preview && <img src={e.preview} alt={`Recorte do ${EYE_LABEL[e.side].toLowerCase()}`} className="w-full rounded-md border border-border" />}
+            {e.preview && (
+              <figure className="space-y-1">
+                <img src={e.preview} alt={`Recorte do ${EYE_LABEL[e.side].toLowerCase()}`} className="w-full rounded-md border border-border" />
+                {e.extraction && (
+                  <figcaption className="text-[11px] text-muted-foreground">
+                    Círculo branco: borda da íris. Círculo interno: pupila ({e.extraction.quality.pupilEstimated ? "dourado, estimada" : "cáqui, encontrada"}).
+                  </figcaption>
+                )}
+              </figure>
+            )}
             {e.normalizedPreview && (
               <figure className="space-y-1">
                 <img src={e.normalizedPreview} alt="Íris desenrolada" className="w-full rounded border border-border [image-rendering:pixelated]" style={{ aspectRatio: "8 / 1" }} />
-                <figcaption className="text-[11px] text-muted-foreground">Íris "desenrolada" (pupila em cima, borda embaixo). Vermelho = descartado (pálpebra, cílio, reflexo).</figcaption>
+                <figcaption className="text-[11px] text-muted-foreground">Íris desenrolada: a pupila fica em cima e a borda embaixo. Em vermelho, o que foi descartado (pálpebra, cílio, reflexo).</figcaption>
               </figure>
             )}
             {q && (
@@ -341,7 +352,7 @@ export function IrisCaptureReport({
             )}
             {q && q.reasons.length > 0 && (
               <Notice tone={GRADE_TONE[q.grade]}>
-                <ul className="list-inside list-disc">
+                <ul className="space-y-1">
                   {q.reasons.map((r) => (
                     <li key={r}>{r}</li>
                   ))}

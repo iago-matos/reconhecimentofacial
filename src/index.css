@@ -2,25 +2,42 @@
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Identidade visual: cores institucionais da PMSC (pm.sc.gov.br) e do uniforme.
+ *   Farda noturna #23211C  fundo (cáqui do uniforme escurecido, legível à noite)
+ *   Cáqui PMSC    #B2A998  texto secundário, régua de evidência
+ *   Branco SC     #F3F1EC  texto principal, nível "alta" da régua
+ *   Vermelho PMSC #D7042B  identidade: faixa do cabeçalho, aba ativa, ação principal
+ *   Verde SC      #008448  só o que o POLICIAL confirma (a máquina nunca fica verde)
+ *   Dourado       #FBED21  foco de teclado e avisos
+ * O vermelho é identidade, não erro: erros usam --alert, sempre com ícone e texto.
+ */
 @layer base {
   :root {
     color-scheme: dark;
-    --background: 220 20% 10%;
-    --foreground: 210 20% 92%;
-    --card: 220 18% 14%;
-    --primary: 210 100% 50%;
+    --background: 43 11% 12%;
+    --foreground: 43 23% 94%;
+    --card: 40 11% 16%;
+    --primary: 349 96% 43%;
     --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 20%;
-    --secondary-foreground: 210 20% 88%;
-    --muted: 220 15% 18%;
-    --muted-foreground: 215 15% 62%;
-    --accent: 45 100% 55%;
-    --accent-foreground: 220 20% 10%;
-    --destructive: 0 72% 51%;
+    --secondary: 40 12% 20%;
+    --secondary-foreground: 43 23% 94%;
+    --muted: 40 12% 20%;
+    --muted-foreground: 39 14% 65%;
+    --accent: 56 96% 56%;
+    --accent-foreground: 43 11% 12%;
+    --destructive: 4 88% 41%;
     --destructive-foreground: 0 0% 100%;
-    --success: 145 70% 42%;
-    --border: 220 15% 24%;
-    --radius: 0.5rem;
+    --alert: 0 100% 77%;
+    --success: 153 100% 26%;
+    --success-foreground: 0 0% 100%;
+    --success-text: 151 57% 60%;
+    --border: 41 12% 27%;
+  }
+
+  /* Texto um pouco maior que o padrão: leitura na rua, com sol ou à noite. */
+  html {
+    font-size: 17px;
   }
 
   * {
@@ -29,13 +46,27 @@
 
   body {
     @apply bg-background text-foreground antialiased;
-    font-family: "Source Sans 3", system-ui, sans-serif;
+    font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+    line-height: 1.45;
   }
 
-  h1, h2, h3 {
-    font-family: "Rajdhani", system-ui, sans-serif;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
+  h1,
+  h2,
+  h3 {
+    font-family: "Barlow Semi Condensed", system-ui, sans-serif;
+    font-weight: 600;
+    line-height: 1.15;
+  }
+
+  :focus-visible {
+    outline: 3px solid hsl(var(--accent));
+    outline-offset: 2px;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-scan {
+      animation: none;
+      display: none;
+    }
   }
 }

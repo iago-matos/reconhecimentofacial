@@ -71,6 +71,8 @@ export interface FacePhoto {
   periocular: Template | null;
   /** Laudo de qualidade da foto (fotos antigas podem não ter). */
   quality?: FaceQuality;
+  /** Rosto alinhado para a folha de comparação; "" = não foi possível alinhar; ausente = ficha antiga. */
+  aligned?: string;
   /** Campos do formato antigo (faceres); só existem em fichas ainda não atualizadas. */
   embedding?: number[] | null;
   model?: string;

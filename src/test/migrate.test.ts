@@ -37,6 +37,19 @@ describe("atualização da base", () => {
     expect(personNeedsUpgrade(up)).toBe(false);
   });
 
+  it("ficha com vetores atuais mas sem recorte alinhado é completada", async () => {
+    const p = person("semrecorte", [[1, 0]]);
+    delete p.photos[0].aligned;
+    expect(personNeedsUpgrade(p)).toBe(true);
+    const up = await upgradePerson(p, async () => ({
+      face: { model: FACE_MODEL_ID, vector: [1, 0] },
+      periocular: { model: PERIOCULAR_MODEL_ID, vector: [1, 0] },
+      aligned: "data:image/jpeg;base64,BB",
+    }));
+    expect(up.photos[0].aligned).toBe("data:image/jpeg;base64,BB");
+    expect(personNeedsUpgrade(up)).toBe(false);
+  });
+
   it("fichas já atualizadas não são tocadas", async () => {
     const p = person("ok", [[1, 0]]);
     expect(personNeedsUpgrade(p)).toBe(false);

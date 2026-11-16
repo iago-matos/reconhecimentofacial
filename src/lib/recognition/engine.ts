@@ -2,7 +2,7 @@ import type { Config, FaceResult, Human } from "@vladmandic/human";
 import { cropFace, type Box } from "@/lib/image";
 import { laplacianVariance, percentile, type GrayImage } from "@/lib/iris/image";
 import { eyeCropRect, extractIris, type IrisExtraction } from "@/lib/iris/pipeline";
-import { ARCFACE_SIZE, arcfaceTransform, warpSimilarity } from "@/lib/recognition/align";
+import { ARCFACE_SIZE, alignedPreview, arcfaceTransform, warpSimilarity } from "@/lib/recognition/align";
 import { ARCFACE_MODEL, embedAligned, loadArcface, type InputNorm } from "@/lib/recognition/arcface";
 import type { Pt } from "@/lib/recognition/geometry";
 import { eyeAnchor, interEyeDistance, landmarksFromMesh, mapLandmarks, type EyeSide, type FaceLandmarks } from "@/lib/recognition/landmarks";
@@ -46,6 +46,8 @@ export interface DetectedFace {
   score: number;
   /** Recorte do rosto (JPEG data URL) para mostrar e guardar na ficha. */
   crop: string;
+  /** Rosto alinhado (olhos e boca em altura fixa) para a folha de comparação. */
+  aligned: string;
   landmarks: FaceLandmarks;
   face: Template | null;
   periocular: Template | null;
@@ -160,6 +162,7 @@ export async function detectFaces(canvas: HTMLCanvasElement): Promise<DetectedFa
       box: boxOf(f),
       score: f.score,
       crop: cropFace(canvas, boxOf(f), 0.45, 640),
+      aligned: alignedPreview(canvas, [eyeAnchor(lm.od), eyeAnchor(lm.oe), lm.noseTip, lm.mouthOD, lm.mouthOE]),
       landmarks: lm,
       face: { model: FACE_MODEL_ID, vector: t.face },
       periocular: { model: PERIOCULAR_MODEL_ID, vector: t.periocular },
@@ -284,6 +287,7 @@ export async function analyzeIrisPhoto(full: HTMLCanvasElement): Promise<IrisCap
     ...face,
     box: [face.box[0] / k, face.box[1] / k, face.box[2] / k, face.box[3] / k],
     landmarks: lm,
+    aligned: alignedPreview(full, [eyeAnchor(lm.od), eyeAnchor(lm.oe), lm.noseTip, lm.mouthOD, lm.mouthOE]),
     face: { model: FACE_MODEL_ID, vector: t.face },
     periocular: { model: PERIOCULAR_MODEL_ID, vector: t.periocular },
   };
@@ -333,8 +337,9 @@ function eyePreview(full: HTMLCanvasElement, r: { x: number; y: number; w: numbe
   if (ex) {
     ctx.lineWidth = 2;
     for (const [circle, color] of [
-      [ex.iris, "rgba(80,220,120,0.95)"],
-      [ex.pupil, ex.quality.pupilEstimated ? "rgba(255,200,0,0.95)" : "rgba(80,180,255,0.95)"],
+      // Branco SC = borda da íris; cáqui = pupila encontrada; dourado = pupila estimada.
+      [ex.iris, "rgba(243,241,236,0.95)"],
+      [ex.pupil, ex.quality.pupilEstimated ? "rgba(251,237,33,0.95)" : "rgba(178,169,152,0.95)"],
     ] as const) {
       ctx.strokeStyle = color;
       ctx.beginPath();

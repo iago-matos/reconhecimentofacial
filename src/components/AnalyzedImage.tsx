@@ -17,18 +17,19 @@ export default function AnalyzedImage({ src, width, height, boxes, scanning }: P
   const stroke = Math.max(2, width / 250);
   const font = Math.max(14, width / 22);
   return (
-    <div className="relative mx-auto w-full overflow-hidden rounded-lg border-2 border-primary/50 bg-black">
+    <div className="relative mx-auto w-full overflow-hidden rounded-xl border border-border bg-black">
       <svg viewBox={`0 0 ${width} ${height}`} className="block max-h-[60svh] w-full" role="img" aria-label="Foto analisada">
         <image href={src} width={width} height={height} />
         {boxes.map(({ box: [x, y, w, h], label, highlight }, i) => {
-          const color = highlight ? "hsl(45 100% 55%)" : "hsl(215 15% 75%)";
+          // Branco SC = rosto com candidatos; cáqui = sem candidatos. (Nunca verde: quem confirma é o policial.)
+          const color = highlight ? "hsl(43 23% 94%)" : "hsl(39 14% 65%)";
           const tagW = font * (0.75 + label.length * 0.6);
           const tagY = y - font * 1.3 >= 0 ? y - font * 1.3 : y + h;
           return (
             <g key={i}>
               <rect x={x} y={y} width={w} height={h} fill="none" stroke={color} strokeWidth={stroke} rx={stroke * 2} />
               <rect x={x} y={tagY} width={tagW} height={font * 1.3} fill={color} rx={stroke * 2} />
-              <text x={x + font * 0.35} y={tagY + font * 1.0} fontSize={font} fontWeight={700} fill="hsl(220 20% 10%)">
+              <text x={x + font * 0.35} y={tagY + font * 1.0} fontSize={font} fontWeight={700} fill="hsl(43 11% 12%)">
                 {label}
               </text>
             </g>

@@ -73,7 +73,7 @@ export default function CameraPanel({ onImage, disabled }: Props) {
 
   return (
     <div className="space-y-3">
-      <div className="relative mx-auto aspect-[3/4] max-h-[60svh] w-full overflow-hidden rounded-lg border-2 border-primary/50 bg-muted sm:aspect-[4/3]">
+      <div className="relative mx-auto aspect-[3/4] max-h-[46svh] w-full overflow-hidden rounded-xl border border-border bg-muted sm:aspect-[4/3]">
         <video
           ref={videoRef}
           autoPlay
@@ -81,7 +81,7 @@ export default function CameraPanel({ onImage, disabled }: Props) {
           muted
           className={`h-full w-full object-cover ${facing === "user" ? "-scale-x-100" : ""}`}
         />
-        <div className="pointer-events-none absolute inset-[12%] rounded-[40%] border-2 border-dashed border-primary/40" />
+        <div className="pointer-events-none absolute inset-[12%] rounded-[40%] border-2 border-dashed border-foreground/50" />
         {!ready && !error && (
           <p className="absolute inset-0 flex items-center justify-center text-sm text-muted-foreground">Abrindo câmera…</p>
         )}

@@ -78,7 +78,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       for (let i = 0; i < stale.length && !cancelled; i++) {
         const updated = await upgradePerson(stale[i], async (image) => {
           const f = await templatesFromImage(image);
-          return f ? { face: f.face, periocular: f.periocular, quality: f.quality } : null;
+          return f ? { face: f.face, periocular: f.periocular, quality: f.quality, aligned: f.aligned } : null;
         });
         await db.putPersons([updated]);
         setUpgrade({ done: i + 1, total: stale.length });

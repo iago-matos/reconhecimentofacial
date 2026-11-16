@@ -19,6 +19,7 @@ export function person(
       takenAt: "2026-01-01",
       face: { model: FACE_MODEL_ID, vector: embedding },
       periocular: { model: PERIOCULAR_MODEL_ID, vector: periocular?.[i] ?? embedding },
+      aligned: "",
     })),
     marks: marks.map((m, i) => ({ id: `${id}-m${i}`, ...m })),
     iris: [],

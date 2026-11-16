@@ -23,6 +23,21 @@ Projeto acadêmico da Faculdade Municipal de Palhoça, pensado para o contexto d
 | **Marcas** | Busca por tipo de marca, região do corpo, lado e descrição livre ("carpa colorida no antebraço"). Funciona mesmo sem foto do rosto. |
 | **Pessoas** | Cadastro com nome, apelido, observações, **várias fotos de épocas diferentes**, **amostras de íris** e marcas corporais. Backup criptografado, registro de uso e exclusão total dos dados. |
 
+## Identidade visual
+
+Cores institucionais da PMSC (tiradas do site oficial) e do uniforme, pensadas para uso na rua, de dia e à noite:
+
+| Cor | Hex | Uso |
+| --- | --- | --- |
+| Farda noturna | `#23211C` | fundo (cáqui do uniforme escurecido) |
+| Cáqui PMSC | `#B2A998` | texto secundário, régua de evidência |
+| Branco SC | `#F3F1EC` | texto principal |
+| Vermelho PMSC | `#D7042B` | identidade e ação principal (faixa do cabeçalho, aba ativa, capturar) |
+| Verde SC | `#008448` | **só ações que o policial confirma** ("É esta pessoa", "Salvar ficha"); o sistema nunca mostra verde por conta própria |
+| Dourado do brasão | `#FBED21` | foco do teclado e avisos |
+
+Títulos em Barlow Semi Condensed (desenho inspirado em placas de rodovia) e texto em Atkinson Hyperlegible (feita para máxima legibilidade, com zero cortado para não confundir com a letra O). O resultado de cada consulta é uma **folha de comparação**: a foto consultada e a da ficha alinhadas na mesma escala, com linhas de referência nos olhos e na boca, e uma régua com as taxas de falso positivo medidas.
+
 ## Decisões de projeto
 
 - **Nunca "identifica" sozinho.** O sistema devolve uma lista ranqueada de candidatos e exige conferência humana — reduz o risco de falso positivo, que é o erro mais grave nesse domínio.

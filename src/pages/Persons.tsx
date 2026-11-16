@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { count } from "@/lib/text";
 import { ArrowLeft, Eye, Pencil, Search, Trash2, UserPlus } from "lucide-react";
 import DataTools from "@/components/DataTools";
 import PersonForm from "@/components/PersonForm";
@@ -32,7 +33,7 @@ export default function Persons() {
     <div className="space-y-4">
       <SectionTitle
         right={
-          <Button variant="accent" onClick={() => setMode("new")}>
+          <Button variant="primary" onClick={() => setMode("new")}>
             <UserPlus className="h-4 w-4" /> Nova
           </Button>
         }
@@ -62,7 +63,7 @@ export default function Persons() {
                 <div className="min-w-0">
                   <p className="truncate font-heading">{displayName(p)}</p>
                   <p className="text-xs text-muted-foreground">
-                    {p.photos.length} foto(s) · {(p.iris ?? []).length} íris · {p.marks.length} marca(s)
+                    {[count(p.photos.length, "foto", "fotos"), count((p.iris ?? []).length, "amostra de íris", "amostras de íris", "sem íris"), count(p.marks.length, "marca", "marcas")].join(", ")}
                   </p>
                 </div>
               </button>
@@ -72,6 +73,7 @@ export default function Persons() {
       )}
 
       <DataTools />
+      <p className="text-center text-xs text-muted-foreground">Projeto acadêmico da Faculdade Municipal de Palhoça.</p>
     </div>
   );
 }
@@ -122,7 +124,7 @@ function PersonDetail({ person, onBack, onEdit }: { person: Person; onBack: () =
               <li key={s.id}>
                 <img src={s.image} alt={EYE_LABEL[s.eye]} className="w-full rounded-md border border-border" />
                 <p className="text-center text-xs text-muted-foreground">
-                  {EYE_LABEL[s.eye]} · {br(s.capturedAt)}
+                  {EYE_LABEL[s.eye]}, {br(s.capturedAt)}
                 </p>
               </li>
             ))}
@@ -157,7 +159,7 @@ function PersonDetail({ person, onBack, onEdit }: { person: Person; onBack: () =
       )}
 
       <p className="text-xs text-muted-foreground">
-        Cadastrado em {br(person.createdAt)} · atualizado em {br(person.updatedAt)}
+        Cadastrado em {br(person.createdAt)}, atualizado em {br(person.updatedAt)}.
       </p>
 
       <div className="grid grid-cols-2 gap-2">

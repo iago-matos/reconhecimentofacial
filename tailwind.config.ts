@@ -5,7 +5,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        heading: ["Rajdhani", "system-ui", "sans-serif"],
+        heading: ["Barlow Semi Condensed", "system-ui", "sans-serif"],
+        sans: ["Atkinson Hyperlegible", "system-ui", "sans-serif"],
       },
       colors: {
         border: "hsl(var(--border))",
@@ -17,11 +18,20 @@ export default {
         muted: { DEFAULT: "hsl(var(--muted))", foreground: "hsl(var(--muted-foreground))" },
         accent: { DEFAULT: "hsl(var(--accent))", foreground: "hsl(var(--accent-foreground))" },
         destructive: { DEFAULT: "hsl(var(--destructive))", foreground: "hsl(var(--destructive-foreground))" },
-        success: { DEFAULT: "hsl(var(--success))" },
+        success: {
+          DEFAULT: "hsl(var(--success))",
+          foreground: "hsl(var(--success-foreground))",
+          text: "hsl(var(--success-text))",
+        },
+        alert: "hsl(var(--alert))",
+        /** Cores da bandeira de SC, só para a faixa institucional do cabeçalho. */
+        flag: { red: "#D7042B", white: "#FFFFFF", green: "#008448" },
       },
       borderRadius: {
-        lg: "var(--radius)",
-        md: "calc(var(--radius) - 2px)",
+        // Hierarquia: controles 10 px, cartões 14 px, folha de comparação reta (laudo).
+        md: "0.375rem",
+        lg: "0.625rem",
+        xl: "0.875rem",
       },
       keyframes: {
         scan: { "0%": { top: "0%" }, "100%": { top: "100%" } },

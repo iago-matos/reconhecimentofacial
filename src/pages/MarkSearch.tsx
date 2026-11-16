@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { count } from "@/lib/text";
 import { Eraser } from "lucide-react";
 import { Button, Card, Field, Notice, SectionTitle, Select, inputClass } from "@/components/ui";
 import { useApp } from "@/state/AppState";
@@ -70,7 +71,7 @@ export default function MarkSearch() {
         <Notice tone="warn">Nenhuma pessoa com marca parecida.</Notice>
       ) : (
         <ul className="space-y-2">
-          <p className="text-sm text-muted-foreground">{hits.length} pessoa(s), da mais compatível para a menos:</p>
+          <p className="text-sm text-muted-foreground">{count(hits.length, "pessoa", "pessoas")}, da mais compatível para a menos:</p>
           {hits.map((h) => {
             const face = h.person.photos.at(-1)?.image;
             return (

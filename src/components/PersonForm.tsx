@@ -60,7 +60,7 @@ export default function PersonForm({ person, initialPhoto, onDone, onCancel }: P
         }
         if (count > 1) problems.push(`${file.name}: ${count} rostos; foi usado o maior.`);
         if (face.quality.grade === "ruim") problems.push(`${file.name}: qualidade ruim (${face.quality.reasons.join(" ")}).`);
-        added.push({ id: newId(), image: face.crop, takenAt: today(), face: face.face, periocular: face.periocular, quality: face.quality });
+        added.push({ id: newId(), image: face.crop, takenAt: today(), face: face.face, periocular: face.periocular, quality: face.quality, aligned: face.aligned });
       } catch (err) {
         problems.push(`${file.name}: ${err instanceof Error ? err.message : String(err)}`);
       }
@@ -127,7 +127,7 @@ export default function PersonForm({ person, initialPhoto, onDone, onCancel }: P
             Descartar
           </Button>
           <Button
-            variant="accent"
+            variant="confirm"
             className="flex-1"
             disabled={chosen.length === 0}
             onClick={() => {
@@ -135,7 +135,7 @@ export default function PersonForm({ person, initialPhoto, onDone, onCancel }: P
               setIrisStep(null);
             }}
           >
-            <Eye className="h-5 w-5" /> Usar {chosen.length} olho(s)
+            <Eye className="h-5 w-5" /> {chosen.length === 2 ? "Usar os dois olhos" : chosen.length === 1 ? "Usar este olho" : "Escolha um olho"}
           </Button>
         </div>
       </div>
@@ -201,7 +201,7 @@ export default function PersonForm({ person, initialPhoto, onDone, onCancel }: P
               <li key={s.id} className="space-y-1">
                 <img src={s.image} alt={EYE_LABEL[s.eye]} className="w-full rounded-md border border-border" />
                 <p className="text-xs text-muted-foreground">
-                  {EYE_LABEL[s.eye]} · {s.capturedAt.split("-").reverse().join("/")} · {Math.round(s.quality.diameterPx)} px
+                  {EYE_LABEL[s.eye]}, {s.capturedAt.split("-").reverse().join("/")}, íris de {Math.round(s.quality.diameterPx)} px
                 </p>
                 <Button variant="ghost" className="w-full min-h-9 py-1 text-xs" onClick={() => setIris((prev) => prev.filter((x) => x.id !== s.id))}>
                   <Trash2 className="h-4 w-4" /> Remover
@@ -239,7 +239,7 @@ export default function PersonForm({ person, initialPhoto, onDone, onCancel }: P
                     <Pencil className="h-4 w-4" />
                   </button>
                   <button
-                    className="p-2 text-muted-foreground hover:text-destructive"
+                    className="p-2 text-muted-foreground hover:text-alert"
                     onClick={() => setMarks((prev) => prev.filter((x) => x.id !== m.id))}
                     aria-label="Remover marca"
                   >
@@ -270,7 +270,7 @@ export default function PersonForm({ person, initialPhoto, onDone, onCancel }: P
         <Button variant="ghost" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button variant="accent" className="flex-1" onClick={() => void submit()} busy={saving} disabled={processing || editingMark !== null}>
+        <Button variant="confirm" className="flex-1" onClick={() => void submit()} busy={saving} disabled={processing || editingMark !== null}>
           <UserPlus className="h-5 w-5" /> Salvar ficha
         </Button>
       </div>

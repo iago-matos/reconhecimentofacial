@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { count } from "@/lib/text";
 import { Download, History, ShieldAlert, Upload } from "lucide-react";
 import { Button, Card, Field, Notice, inputClass } from "@/components/ui";
 import { useApp } from "@/state/AppState";
@@ -51,7 +52,7 @@ export default function DataTools() {
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       log("exportacao", `${persons.length} pessoa(s)`);
       setPassword("");
-      return `Cópia salva com ${persons.length} pessoa(s). Guarde a senha: sem ela o arquivo não abre.`;
+      return `Cópia salva com ${count(persons.length, "pessoa", "pessoas", "nenhuma pessoa")}. Guarde a senha: sem ela o arquivo não abre.`;
     });
 
   const importBackup = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -62,7 +63,7 @@ export default function DataTools() {
       const incoming = await decryptBackup(await file.text(), password);
       const n = await importPersons(incoming);
       setPassword("");
-      return `${n} pessoa(s) importada(s). Fichas com o mesmo identificador foram substituídas.`;
+      return `${count(n, "pessoa importada", "pessoas importadas", "Nenhuma pessoa importada")}. Fichas com o mesmo identificador foram substituídas.`;
     });
   };
 
@@ -110,7 +111,7 @@ export default function DataTools() {
             {entries.map((e) => (
               <li key={e.id} className="border-b border-border/50 pb-1">
                 <span className="text-muted-foreground">{new Date(e.at).toLocaleString("pt-BR")}</span> ·{" "}
-                <b>{ACTION_LABEL[e.action]}</b> · {e.detail}
+                <b>{ACTION_LABEL[e.action]}:</b> {e.detail}
               </li>
             ))}
           </ul>

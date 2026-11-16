@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from "react";
+import { count } from "@/lib/text";
 import { Check, Plus, RotateCcw } from "lucide-react";
+import { CompareSheet, EvidenceRuler, StrengthPill, type Strength } from "@/components/Evidence";
 import IrisCapture, { IrisCaptureReport } from "@/components/IrisCapture";
+import { IRIS_CAPTION, IRIS_TICKS, irisRulerPosition } from "@/lib/recognition/evidence";
 import { Button, Card, Notice, SectionTitle, Spinner } from "@/components/ui";
 import { useApp } from "@/state/AppState";
 import { IRIS_BAND_LABEL, formatHd, searchIris, verifyIris, type IrisVerdict } from "@/lib/iris/verify";
@@ -10,12 +13,8 @@ import type { IrisCaptureResult } from "@/lib/recognition/engine";
 import type { IrisBand } from "@/lib/iris/match";
 import { EYE_LABEL, IRIS_MODEL_ID, displayName, type Person } from "@/lib/types";
 
-const IRIS_STYLE: Record<IrisBand, string> = {
-  forte: "bg-success/80",
-  moderada: "bg-accent text-accent-foreground",
-  fraca: "bg-secondary text-secondary-foreground",
-  inconclusiva: "bg-muted text-muted-foreground",
-};
+/** Mesma escala neutra do rosto: a força da evidência vai do cáqui ao branco, nunca ao verde. */
+const IRIS_STRENGTH: Record<IrisBand, Strength> = { forte: "alta", moderada: "media", fraca: "baixa", inconclusiva: "baixa" };
 
 /**
  * Etapa 3 — conferência (1:1, quando vem de uma ficha) ou busca (1:N) por íris.
@@ -65,7 +64,7 @@ export default function IrisCheck({ active }: { active: boolean }) {
     if (!result) return;
     const samples = toIrisSamples(result, usableEyes(result));
     if (!samples.length) return;
-    if (!window.confirm(`Adicionar ${samples.length} amostra(s) de íris à ficha de ${displayName(p)}?\n\nSó faça isso se a identidade foi confirmada por outros meios.`)) return;
+    if (!window.confirm(`Adicionar ${count(samples.length, "amostra", "amostras")} de íris à ficha de ${displayName(p)}?\n\nSó faça isso se a identidade foi confirmada por outros meios.`)) return;
     await savePerson({ ...p, iris: [...(p.iris ?? []), ...samples] }, false);
     log("confirmacao", `Íris adicionada à ficha de ${displayName(p)} (${samples.length} amostra(s))`);
     setSaved(displayName(p));
@@ -74,7 +73,7 @@ export default function IrisCheck({ active }: { active: boolean }) {
   if (engine === "erro") {
     return (
       <Card className="space-y-3 text-center">
-        <p className="font-heading text-destructive">Não foi possível carregar os modelos.</p>
+        <p className="font-heading text-alert">Não foi possível carregar os modelos.</p>
         <p className="text-sm text-muted-foreground">{engineError}</p>
         <Button variant="primary" onClick={retryEngine}>
           Tentar novamente
@@ -93,7 +92,7 @@ export default function IrisCheck({ active }: { active: boolean }) {
         </Notice>
         {target ? (
           <Notice tone="info">
-            Conferindo com a ficha de <b>{displayName(target)}</b> ({(target.iris ?? []).length} amostra(s) de íris).{" "}
+            Conferindo com a ficha de <b>{displayName(target)}</b> ({count((target.iris ?? []).length, "amostra de íris", "amostras de íris", "sem íris cadastrada")}).{" "}
             <button className="underline" onClick={() => go("iris")}>
               Buscar em todas as fichas
             </button>
@@ -145,44 +144,49 @@ export default function IrisCheck({ active }: { active: boolean }) {
           ) : (
             <ul className="space-y-3">
               {verdicts.map((v) => (
-                <li key={v.person.id} className="space-y-2 rounded-lg border border-border bg-muted/30 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <p className="font-heading text-base leading-tight">{displayName(v.person)}</p>
-                    <span className={`shrink-0 rounded px-2 py-0.5 text-xs font-semibold ${IRIS_STYLE[v.band]}`}>{IRIS_BAND_LABEL[v.band]}</span>
+                <li key={v.person.id} className="overflow-hidden rounded-xl border border-border bg-background/40">
+                  <div className="flex items-center gap-3 p-3">
+                    <p className="min-w-0 flex-1 break-words font-heading text-xl leading-tight">{displayName(v.person)}</p>
+                    <StrengthPill strength={IRIS_STRENGTH[v.band]}>{IRIS_BAND_LABEL[v.band]}</StrengthPill>
                   </div>
                   {v.eyes.map((e) => {
                     const probe = result.eyes.find((x) => x.side === e.eye);
                     return (
-                      <div key={e.eye} className="space-y-1">
-                        <p className="text-xs text-muted-foreground">
-                          {EYE_LABEL[e.eye]}:{" "}
-                          {e.comparison
-                            ? `distância ${formatHd(e.comparison.hdNorm)} · ${e.comparison.bits} bits · giro ${Math.round((e.comparison.shift * 360) / 256)}°`
-                            : "sem amostra do mesmo olho na ficha"}
-                        </p>
+                      <div key={e.eye} className="space-y-1 pb-2">
                         {e.sample && probe?.preview && (
-                          <div className="grid grid-cols-2 gap-1" aria-label="Comparação: olho capturado e olho da ficha">
-                            <img src={probe.preview} alt="Capturado" className="w-full rounded-l-md" />
-                            <img src={e.sample.image} alt="Da ficha" className="w-full rounded-r-md" />
-                          </div>
+                          <CompareSheet
+                            aspect="aspect-[4/3]"
+                            label={`${EYE_LABEL[e.eye]}: olho capturado e olho da ficha`}
+                            left={{ src: probe.preview, caption: `${EYE_LABEL[e.eye]}, agora`, aligned: false }}
+                            right={{ src: e.sample.image, caption: `Ficha, ${e.sample.capturedAt.split("-").reverse().join("/")}`, aligned: false }}
+                          />
                         )}
+                        <p className="px-3 text-sm text-muted-foreground">
+                          {e.comparison
+                            ? `${EYE_LABEL[e.eye]}: distância ${formatHd(e.comparison.hdNorm)}, ${e.comparison.bits.toLocaleString("pt-BR")} pontos comparados, giro de ${Math.round((e.comparison.shift * 360) / 256)}°.`
+                            : `${EYE_LABEL[e.eye]}: a ficha não tem amostra deste olho.`}
+                        </p>
                       </div>
                     );
                   })}
-                  <div className="grid grid-cols-2 gap-2">
-                    <Button variant="ghost" onClick={() => go("pessoas", v.person.id)}>
-                      Ver ficha
-                    </Button>
-                    <Button variant="secondary" onClick={() => void addToPerson(v.person)}>
-                      <Plus className="h-4 w-4" /> Somar à ficha
-                    </Button>
+                  <div className="space-y-2 px-3 pb-3">
+                    {v.hd != null && <EvidenceRuler position={irisRulerPosition(v.hd)} ticks={IRIS_TICKS} label="Compatibilidade da íris" />}
+                    <p className="text-sm">{IRIS_CAPTION[v.band]}</p>
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <Button variant="ghost" onClick={() => go("pessoas", v.person.id)}>
+                        Ver ficha
+                      </Button>
+                      <Button variant="confirm" onClick={() => void addToPerson(v.person)}>
+                        <Plus className="h-4 w-4" /> Somar à ficha
+                      </Button>
+                    </div>
                   </div>
                 </li>
               ))}
             </ul>
           )}
           <p className="text-[11px] text-muted-foreground">
-            Distância de Hamming: 0 = idênticas, ≈0,5 = olhos diferentes. Daugman usa ≈0,32 como limite em infravermelho.
+            A distância vai de 0 (padrões idênticos) a cerca de 0,5 (olhos diferentes). Leitores infravermelhos usam 0,32 como limite.
           </p>
         </Card>
       )}
@@ -198,8 +202,8 @@ export default function IrisCheck({ active }: { active: boolean }) {
                 <li key={c.person.id} className="flex flex-wrap items-center justify-between gap-2">
                   <span className="font-heading">{displayName(c.person)}</span>
                   <span className="text-xs text-muted-foreground">
-                    {BAND_LABEL[c.band]} · rosto {c.face != null ? formatSimilarity(c.face) : "—"} · olhos{" "}
-                    {c.periocular != null ? formatSimilarity(c.periocular) : "—"}
+                    {BAND_LABEL[c.band]}: rosto {c.face != null ? formatSimilarity(c.face) : "não comparado"}, olhos{" "}
+                    {c.periocular != null ? formatSimilarity(c.periocular) : "não comparados"}
                   </span>
                 </li>
               ))}

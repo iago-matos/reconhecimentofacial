@@ -1,12 +1,17 @@
 import type { ButtonHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
-import { Loader2 } from "lucide-react";
+import { CircleCheck, Info, Loader2, OctagonAlert, TriangleAlert } from "lucide-react";
 
-type Variant = "primary" | "secondary" | "accent" | "danger" | "ghost";
+/**
+ * primary  → vermelho PMSC: a ação principal da tela (capturar, nova consulta)
+ * confirm  → verde SC: só ações em que o POLICIAL confirma algo (é esta pessoa, salvar ficha)
+ * secondary/ghost → ações de apoio; danger → apagar
+ */
+type Variant = "primary" | "secondary" | "confirm" | "danger" | "ghost";
 
 const VARIANTS: Record<Variant, string> = {
   primary: "bg-primary text-primary-foreground hover:brightness-110",
   secondary: "bg-secondary text-secondary-foreground hover:brightness-125",
-  accent: "bg-accent text-accent-foreground hover:brightness-110",
+  confirm: "bg-success text-success-foreground hover:brightness-110",
   danger: "bg-destructive text-destructive-foreground hover:brightness-110",
   ghost: "bg-transparent text-muted-foreground hover:text-foreground hover:bg-secondary",
 };
@@ -23,7 +28,7 @@ export function Button({
       type="button"
       {...props}
       disabled={props.disabled || busy}
-      className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg px-4 py-2 font-heading text-sm font-semibold uppercase tracking-wider transition disabled:cursor-not-allowed disabled:opacity-40 ${VARIANTS[variant]} ${className}`}
+      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-lg px-4 py-2 font-heading text-[1.05rem] font-semibold transition disabled:cursor-not-allowed disabled:opacity-40 ${VARIANTS[variant]} ${className}`}
     >
       {busy && <Loader2 className="h-4 w-4 animate-spin" />}
       {children}
@@ -32,13 +37,13 @@ export function Button({
 }
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
-  return <div className={`rounded-lg border border-border bg-card p-4 ${className}`}>{children}</div>;
+  return <div className={`rounded-xl border border-border bg-card p-4 ${className}`}>{children}</div>;
 }
 
 export function Field({ label, children, hint }: { label: string; children: ReactNode; hint?: string }) {
   return (
     <label className="block space-y-1">
-      <span className="block font-heading text-xs uppercase tracking-wider text-muted-foreground">{label}</span>
+      <span className="block text-sm text-muted-foreground">{label}</span>
       {children}
       {hint && <span className="block text-xs text-muted-foreground">{hint}</span>}
     </label>
@@ -46,7 +51,7 @@ export function Field({ label, children, hint }: { label: string; children: Reac
 }
 
 export const inputClass =
-  "w-full rounded-md border border-border bg-muted px-3 py-2 text-base text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus:ring-2 focus:ring-primary/60 disabled:opacity-50";
+  "w-full rounded-lg border border-border bg-muted px-3 py-2.5 text-base text-foreground placeholder:text-muted-foreground/70 focus:outline-none focus-visible:outline-none focus:ring-2 focus:ring-accent disabled:opacity-50";
 
 export function Select<T extends string>({
   value,
@@ -72,16 +77,21 @@ export function Select<T extends string>({
   );
 }
 
-export function Notice({ tone = "info", children }: { tone?: "info" | "warn" | "error" | "ok"; children: ReactNode }) {
-  const tones = {
-    info: "border-primary/40 bg-primary/10 text-foreground",
-    warn: "border-accent/50 bg-accent/10 text-foreground",
-    error: "border-destructive/50 bg-destructive/10 text-foreground",
-    ok: "border-success/50 bg-success/10 text-foreground",
-  };
+const NOTICE = {
+  info: { box: "border-muted-foreground/30 bg-secondary/60", icon: Info, iconClass: "text-muted-foreground" },
+  warn: { box: "border-accent/50 bg-accent/10", icon: TriangleAlert, iconClass: "text-accent" },
+  error: { box: "border-alert/60 bg-destructive/15", icon: OctagonAlert, iconClass: "text-alert" },
+  ok: { box: "border-success-text/50 bg-success/15", icon: CircleCheck, iconClass: "text-success-text" },
+} as const;
+
+/** Aviso com ícone: o tom nunca depende só da cor. */
+export function Notice({ tone = "info", children }: { tone?: keyof typeof NOTICE; children: ReactNode }) {
+  const t = NOTICE[tone];
+  const Icon = t.icon;
   return (
-    <div role={tone === "error" ? "alert" : "status"} className={`rounded-lg border px-3 py-2 text-sm ${tones[tone]}`}>
-      {children}
+    <div role={tone === "error" ? "alert" : "status"} className={`flex gap-2 rounded-lg border px-3 py-2 text-sm text-foreground ${t.box}`}>
+      <Icon className={`mt-0.5 h-4 w-4 shrink-0 ${t.iconClass}`} aria-hidden />
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }
@@ -89,7 +99,7 @@ export function Notice({ tone = "info", children }: { tone?: "info" | "warn" | "
 export function SectionTitle({ children, right }: { children: ReactNode; right?: ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-2">
-      <h2 className="text-lg text-foreground">{children}</h2>
+      <h2 className="text-2xl text-foreground">{children}</h2>
       {right}
     </div>
   );
@@ -98,8 +108,8 @@ export function SectionTitle({ children, right }: { children: ReactNode; right?:
 export function Spinner({ label }: { label: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-10 text-center">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      <p className="font-heading text-sm uppercase tracking-widest text-muted-foreground">{label}</p>
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      <p className="text-sm text-muted-foreground">{label}</p>
     </div>
   );
 }

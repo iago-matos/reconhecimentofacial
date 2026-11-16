@@ -82,14 +82,14 @@ export default function MarkEditor({ initial, onSave, onCancel }: Props) {
         </Button>
         <input ref={fileRef} type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => void pickPhoto(e)} />
       </div>
-      {error && <p className="text-sm text-destructive">{error}</p>}
+      {error && <p className="text-sm text-alert">{error}</p>}
       <div className="flex gap-2">
         {onCancel && (
           <Button variant="ghost" onClick={onCancel}>
             Cancelar
           </Button>
         )}
-        <Button variant="accent" className="flex-1" onClick={save}>
+        <Button variant="confirm" className="flex-1" onClick={save}>
           <Plus className="h-4 w-4" /> {initial ? "Salvar marca" : "Adicionar marca"}
         </Button>
       </div>

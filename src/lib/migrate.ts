@@ -16,7 +16,8 @@ export function normalizePerson(p: Person): Person {
 }
 
 export function photoNeedsUpgrade(ph: FacePhoto): boolean {
-  return ph.face?.model !== FACE_MODEL_ID || ph.periocular?.model !== PERIOCULAR_MODEL_ID;
+  // `aligned` ausente = ficha anterior à folha de comparação ("" quer dizer que já se tentou e não deu).
+  return ph.face?.model !== FACE_MODEL_ID || ph.periocular?.model !== PERIOCULAR_MODEL_ID || ph.aligned === undefined;
 }
 
 export function personNeedsUpgrade(p: Person): boolean {
@@ -27,6 +28,7 @@ export interface Recomputed {
   face: Template | null;
   periocular: Template | null;
   quality?: FacePhoto["quality"];
+  aligned?: string;
 }
 
 /**
@@ -48,6 +50,7 @@ export async function upgradePerson(p: Person, compute: (image: string) => Promi
       face: r?.face ?? { model: FACE_MODEL_ID, vector: [] },
       periocular: r?.periocular ?? { model: PERIOCULAR_MODEL_ID, vector: [] },
       quality: r?.quality ?? ph.quality,
+      aligned: r?.aligned ?? "",
     });
   }
   return { ...p, photos };

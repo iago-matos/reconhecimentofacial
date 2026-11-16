@@ -18,6 +18,24 @@ export function arcfaceTransform(points: Pt[]): Similarity {
   return estimateSimilarity(points, ARCFACE_TEMPLATE);
 }
 
+/** Lado do recorte alinhado guardado para a comparação visual (folha de comparação). */
+export const COMPARE_SIZE = 240;
+/** O recorte do modelo corta testa e queixo; para o olho humano o rosto ocupa 72% da moldura. */
+const COMPARE_ZOOM = 0.72;
+const zoomed = (v: number) => 0.5 + (v / ARCFACE_SIZE - 0.5) * COMPARE_ZOOM;
+/** Altura relativa (0..1) da linha dos olhos e da boca no recorte de comparação. */
+export const EYE_LINE = zoomed((ARCFACE_TEMPLATE[0][1] + ARCFACE_TEMPLATE[1][1]) / 2);
+export const MOUTH_LINE = zoomed((ARCFACE_TEMPLATE[3][1] + ARCFACE_TEMPLATE[4][1]) / 2);
+
+/**
+ * Recorte para mostrar ao policial: mesmo alinhamento do modelo, com mais margem.
+ * Duas fotos alinhadas assim ficam com olhos e boca na mesma altura, lado a lado.
+ */
+export function alignedPreview(source: HTMLCanvasElement, points: Pt[]): string {
+  const dst = ARCFACE_TEMPLATE.map(([x, y]) => [zoomed(x) * COMPARE_SIZE, zoomed(y) * COMPARE_SIZE] as Pt);
+  return warpSimilarity(source, estimateSimilarity(points, dst), COMPARE_SIZE, COMPARE_SIZE).toDataURL("image/jpeg", 0.86);
+}
+
 /**
  * Aplica a transformação (origem → saída) e devolve um canvas `outW × outH`.
  * Quando a redução é grande (rosto grande na foto), reduz antes com filtro de qualidade
