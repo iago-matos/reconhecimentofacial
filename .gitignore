@@ -1,0 +1,13 @@
+node_modules
+dist
+dist-ssr
+*.local
+*.log
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+# Modelos são copiados de node_modules no npm install
+public/models
+# Cópias de segurança da base (contêm dados biométricos)
+*.pmbak

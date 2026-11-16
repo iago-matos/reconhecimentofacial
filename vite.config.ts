@@ -1,0 +1,12 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import path from "path";
+
+// GitHub Pages publica em https://<usuario>.github.io/<repositorio>/
+export default defineConfig(({ mode }) => ({
+  base: mode === "production" ? "/reconhecimentofacial/" : "/",
+  server: { host: "::", port: 8080 },
+  plugins: [react()],
+  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+  build: { chunkSizeWarningLimit: 3000 },
+}));
