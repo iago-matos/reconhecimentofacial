@@ -16,7 +16,7 @@ Projeto acadêmico da Faculdade Municipal de Palhoça, pensado para o contexto d
 
 ## Funcionalidades
 
-| Aba | O que faz |
+| Aba | O que faz ?|
 | --- | --- |
 | **Rosto** | Captura pela câmera (frontal/traseira) ou envio de imagem (JPG, PNG, WEBP). Detecta vários rostos na mesma foto e, para cada um, lista os **5 candidatos mais parecidos** com faixa de semelhança (alta / média / baixa), a similaridade do rosto e dos olhos e um **laudo de qualidade** da foto. Modo **"rosto coberto"** compara só a região dos olhos (máscara, balaclava). |
 | **Íris** *(experimental)* | Foto de perto com a câmera traseira em resolução máxima, com orientação ao vivo ("aproxime mais"), lanterna e zoom. Confere a íris com uma ficha (1:1) ou busca em todas (1:N), mostrando o olho capturado ao lado do cadastrado. |
