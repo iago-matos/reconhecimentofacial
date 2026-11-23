@@ -9,6 +9,8 @@ interface Props {
   /** `liveness` diz se a captura comprovou que a pessoa estava presente. */
   onImage: (canvas: HTMLCanvasElement, liveness: LivenessStatus) => void;
   disabled?: boolean;
+  /** Mostra "Capturar com prova de vida" (desligado por padrão; ver Preferências). */
+  showLiveness?: boolean;
 }
 
 /** Estado do desafio de prova de vida. */
@@ -17,7 +19,7 @@ type Challenge = { phase: "idle" } | { phase: "running"; elapsed: number; tracke
 type Facing = "environment" | "user";
 
 /** Câmera (traseira por padrão, como em uma abordagem) e envio de foto do aparelho. */
-export default function CameraPanel({ onImage, disabled }: Props) {
+export default function CameraPanel({ onImage, disabled, showLiveness = false }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [facing, setFacing] = useState<Facing>("environment");
@@ -184,9 +186,11 @@ export default function CameraPanel({ onImage, disabled }: Props) {
           <SwitchCamera className="h-5 w-5" />
         </Button>
       </div>
-      <Button className="w-full" onClick={() => void captureWithLiveness()} disabled={!ready || disabled || running}>
-        <ScanEye className="h-5 w-5" /> Capturar com prova de vida
-      </Button>
+      {showLiveness && (
+        <Button className="w-full" onClick={() => void captureWithLiveness()} disabled={!ready || disabled || running}>
+          <ScanEye className="h-5 w-5" /> Capturar com prova de vida
+        </Button>
+      )}
       <Button className="w-full" onClick={() => fileRef.current?.click()} disabled={disabled || running}>
         <ImageUp className="h-5 w-5" /> Enviar foto do aparelho
       </Button>

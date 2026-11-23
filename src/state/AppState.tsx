@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState, t
 import * as db from "@/lib/db";
 import { loadEngine, templatesFromImage } from "@/lib/recognition/engine";
 import { personNeedsUpgrade, upgradePerson } from "@/lib/migrate";
+import { loadSettings, saveSettings, type Settings } from "@/lib/settings";
 import { displayName, type LogAction, type Person } from "@/lib/types";
 
 export type Tab = "rosto" | "iris" | "marcas" | "pessoas";
@@ -17,6 +18,9 @@ interface AppState {
   retryEngine: () => void;
   /** Atualização da base para o modelo novo em andamento (null = nada a fazer). */
   upgrade: { done: number; total: number } | null;
+  /** Preferências deste aparelho. */
+  settings: Settings;
+  updateSettings: (patch: Partial<Settings>) => void;
   savePerson: (person: Person, isNew: boolean) => Promise<void>;
   removePerson: (person: Person) => Promise<void>;
   importPersons: (persons: Person[]) => Promise<number>;
@@ -39,6 +43,14 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
   const [tab, setTab] = useState<Tab>("rosto");
   const [openPersonId, setOpenPersonId] = useState<string | null>(null);
   const [upgrade, setUpgrade] = useState<{ done: number; total: number } | null>(null);
+  const [settings, setSettings] = useState<Settings>(loadSettings);
+  const updateSettings = useCallback((patch: Partial<Settings>) => {
+    setSettings((prev) => {
+      const next = { ...prev, ...patch };
+      saveSettings(next);
+      return next;
+    });
+  }, []);
 
   const reload = useCallback(async () => {
     setPersons(await db.getAllPersons());
@@ -153,6 +165,8 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       engineError,
       retryEngine: startEngine,
       upgrade,
+      settings,
+      updateSettings,
       savePerson,
       removePerson,
       importPersons,
@@ -162,7 +176,7 @@ export function AppStateProvider({ children }: { children: ReactNode }) {
       openPersonId,
       go,
     }),
-    [persons, dataReady, dataError, engine, engineError, startEngine, upgrade, savePerson, removePerson, importPersons, wipeAll, log, tab, openPersonId, go],
+    [persons, dataReady, dataError, engine, engineError, startEngine, upgrade, settings, updateSettings, savePerson, removePerson, importPersons, wipeAll, log, tab, openPersonId, go],
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -30,7 +30,7 @@ const QUALITY_STYLE = { boa: "text-success-text", aceitavel: "text-accent", ruim
 
 /** `active`: a aba está visível. Fora dela a câmera é desligada, mas o resultado é mantido. */
 export default function FaceSearch({ active }: { active: boolean }) {
-  const { engine, engineError, retryEngine, persons, savePerson, log, go, upgrade } = useApp();
+  const { engine, engineError, retryEngine, persons, savePerson, log, go, upgrade, settings } = useApp();
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [analyzing, setAnalyzing] = useState(false);
   const [error, setError] = useState("");
@@ -132,7 +132,7 @@ export default function FaceSearch({ active }: { active: boolean }) {
             Atualizando a base para o novo modelo de reconhecimento ({upgrade.done}/{upgrade.total} fichas)…
           </Notice>
         )}
-        {active && <CameraPanel onImage={(c, l) => void analyze(c, l)} disabled={analyzing} />}
+        {active && <CameraPanel onImage={(c, l) => void analyze(c, l)} disabled={analyzing} showLiveness={settings.livenessButton} />}
         <ModeToggle mode={mode} onChange={setMode} />
       </div>
     );
@@ -166,7 +166,7 @@ export default function FaceSearch({ active }: { active: boolean }) {
 
       {analysis.faces.length > 0 && (
         <>
-          <LivenessNotice status={analysis.liveness} />
+          <LivenessNotice status={analysis.liveness} enabled={settings.livenessButton} />
           <ModeToggle mode={mode} onChange={setMode} />
           <Notice tone="warn">
             <b>Resultado indicativo, não é prova de identidade.</b> Compare as fotos e confirme por outros meios (documento,
@@ -338,7 +338,9 @@ function ModeToggle({ mode, onChange }: { mode: MatchMode; onChange: (m: MatchMo
   );
 }
 
-function LivenessNotice({ status }: { status: LivenessStatus }) {
+/** Com a prova de vida desligada (padrão), só aparece se a pessoa usou o desafio; o registro de uso anota sempre. */
+function LivenessNotice({ status, enabled }: { status: LivenessStatus; enabled: boolean }) {
+  if (!enabled && (status.kind === "nao_verificada" || status.kind === "arquivo")) return null;
   if (status.kind === "comprovada")
     return (
       <Notice tone="ok">

@@ -79,8 +79,8 @@ candidatos com a força da semelhança e o policial confirma por outros meios
 5. FUNCIONALIDADES (ABAS)
 --------------------------------------------------------------------------------
 
-  Rosto     Captura pela câmera (traseira por padrão), captura com prova de
-            vida ou envio de foto. Detecta vários rostos. Para cada um mostra
+  Rosto     Captura pela câmera (traseira por padrão) ou envio de foto.
+            Captura com prova de vida opcional (Pessoas → Preferências). Detecta vários rostos. Para cada um mostra
             os candidatos numa folha de comparação (fotos alinhadas lado a
             lado) com régua de evidência. Modo "Rosto coberto, só olhos".
             Pistas fracas ficam recolhidas.
@@ -118,7 +118,9 @@ candidatos com a força da semelhança e o policial confirma por outros meios
   Baixa  1 em 100 (mínimo exibido; fica recolhida como "pista fraca", com o
          número de coincidências esperadas para o tamanho da base)
 
-6.5 Prova de vida (ativa)
+6.5 Prova de vida (ativa, opcional)
+  Desligada por padrão: numa abordagem o policial já vê a pessoa; a função
+  serve sobretudo para auditoria. Ative em Pessoas → Preferências.
   "Capturar com prova de vida" acompanha o rosto por até 6 s e só aceita se a
   pessoa piscar (abertura das pálpebras cai abaixo de 60% e volta acima de
   85%) ou virar a cabeça (giro de 18° ou mais). Uma foto impressa ou parada

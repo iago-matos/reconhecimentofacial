@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { count } from "@/lib/text";
 import { ArrowLeft, Eye, Pencil, Search, Trash2, UserPlus } from "lucide-react";
 import DataTools from "@/components/DataTools";
+import Preferences from "@/components/Preferences";
 import PersonForm from "@/components/PersonForm";
 import { Button, Card, Notice, SectionTitle, inputClass } from "@/components/ui";
 import { useApp } from "@/state/AppState";
@@ -73,6 +74,7 @@ export default function Persons() {
       )}
 
       <DataTools />
+      <Preferences />
       <p className="text-center text-xs text-muted-foreground">Projeto acadêmico da Faculdade Municipal de Palhoça.</p>
     </div>
   );

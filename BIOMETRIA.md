@@ -70,7 +70,7 @@ Os dois quase não detectaram as fraudes simuladas e ainda geram alarme falso. A
 
 O app usa **prova de vida ativa** ([liveness.ts](src/lib/recognition/liveness.ts)): por até 6 s a câmera acompanha a abertura das pálpebras (*eye aspect ratio*, Soukupová & Čech, 2016) e o giro da cabeça. Ela aceita uma piscada completa (abertura abaixo de 60% da típica e volta acima de 85%) ou um giro de 18° ou mais. Uma foto impressa ou parada numa tela não passa; um **vídeo** da pessoa exibido numa tela pode passar.
 
-Cada consulta registra o resultado: comprovada, não comprovada, não verificada (captura simples) ou foto enviada do aparelho.
+A função é **opcional e fica desligada por padrão** (Pessoas → Preferências): numa abordagem o policial já vê a pessoa, então ela serve sobretudo para auditoria. Cada consulta registra o resultado: comprovada, não comprovada, não verificada (captura simples) ou foto enviada do aparelho.
 
 ## Avaliação (LFW, no próprio navegador)
 
