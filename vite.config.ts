@@ -9,4 +9,6 @@ export default defineConfig(({ mode }) => ({
   plugins: [react()],
   resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
   build: { chunkSizeWarningLimit: 3000 },
+  // Identificador do build: o service worker usa para renovar a cópia guardada do app a cada publicação.
+  define: { __BUILD_ID__: JSON.stringify(Date.now().toString(36)) },
 }));

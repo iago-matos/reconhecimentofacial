@@ -1,348 +1,227 @@
 ================================================================================
-                    SISTEMA DE RECONHECIMENTO FACIAL
-                         Documentação do Projeto
+                SISTEMA DE APOIO À IDENTIFICAÇÃO — PMSC PALHOÇA
+                          Documentação do Projeto
 ================================================================================
 
-Projeto:        Reconhecimento Facial — PMSC São José
-Base técnica:   React + Vite + TypeScript + face-api.js
-Data:           Abril de 2026
-Tipo:           Projeto acadêmico / institucional
+Projeto:        Apoio à identificação por rosto, olhos, íris e marcas corporais
+Base técnica:   React + Vite + TypeScript + Human (TensorFlow.js) + ArcFace
+Atualizado em:  Novembro de 2026
+Tipo:           Projeto acadêmico (Faculdade Municipal de Palhoça), contexto PMSC
+
+Documentos complementares:
+  README.md      visão geral, como rodar e resultados principais
+  BIOMETRIA.md   detalhes técnicos das Etapas 1–3, metodologia e números da
+                 avaliação, como recalibrar e plano da Etapa 4
+
 
 --------------------------------------------------------------------------------
 1. EQUIPE
 --------------------------------------------------------------------------------
 
-Alunos responsáveis:
   - Letícia Tambani
   - Marcelo Marques de Souza
   - Rithiély Schmitt
-
-Contexto institucional:
-  Polícia Militar de Santa Catarina (PMSC) — São José
-  Uso restrito conforme indicado na interface da aplicação.
 
 
 --------------------------------------------------------------------------------
 2. VISÃO GERAL
 --------------------------------------------------------------------------------
 
-Este projeto é uma aplicação web de reconhecimento facial que roda inteiramente
-no navegador do usuário. Não há servidor backend dedicado ao processamento de
-imagens: a detecção e a correspondência de rostos são feitas localmente com
-modelos de inteligência artificial carregados via face-api.js.
+Aplicação web, para celular, que ajuda o policial a identificar pessoas.
+Tudo roda no próprio aparelho: os modelos de IA, o banco de dados e a
+criptografia. Nenhuma imagem é enviada para servidores.
 
-A interface foi pensada para uso institucional, com cabeçalho e rodapé
-referenciando a PMSC, e permite:
-
-  - Consultar se uma pessoa capturada pela câmera ou enviada por arquivo já
-    está cadastrada na base de rostos conhecidos;
-  - Identificar múltiplos rostos em uma mesma imagem;
-  - Cadastrar rapidamente pessoas desconhecidas durante uma consulta.
-
-Os dados de pessoas cadastradas ficam em memória durante a sessão. Novos
-cadastros feitos pelo usuário são adicionados à base em tempo real, mas não
-são persistidos em banco de dados ou armazenamento local após recarregar a
-página.
+Princípio central: o sistema NUNCA identifica sozinho. Ele mostra uma lista de
+candidatos com a força da semelhança e o policial confirma por outros meios
+(documento, tatuagens, cicatrizes).
 
 
 --------------------------------------------------------------------------------
-3. TECNOLOGIAS UTILIZADAS
+3. TECNOLOGIAS
 --------------------------------------------------------------------------------
 
-Frontend:
-  - React 18
-  - TypeScript
-  - Vite 5 (bundler e servidor de desenvolvimento)
-  - React Router DOM (roteamento)
-  - Tailwind CSS (estilização)
-  - shadcn/ui + Radix UI (componentes de interface)
-  - Lucide React (ícones)
-
-Reconhecimento facial:
-  - face-api.js 0.22.2
-  - Modelos: SSD MobileNet v1 (detecção), Face Landmark 68 (pontos faciais),
-    Face Recognition Net (descritores de 128 dimensões)
-
-Ferramentas de desenvolvimento:
-  - ESLint (lint)
-  - Vitest + Testing Library (testes unitários)
-  - Playwright (testes E2E — configurado)
-  - GitHub Actions (deploy automático para GitHub Pages)
+  Interface      React 18, TypeScript 5, Vite 5, Tailwind CSS 3, Lucide
+  IA             @vladmandic/human 3.3.6 (TensorFlow.js, WebGL com reserva em CPU):
+                   - BlazeFace: encontra rostos
+                   - FaceMesh + Iris: 478 pontos (olhos, pálpebras, íris, nariz, boca)
+                 ArcFace / InsightFace efficientnet-b0 (vendor/models): vetor do rosto
+                 Módulo de íris próprio (src/lib/iris), sem bibliotecas externas
+  Dados          IndexedDB (banco do navegador), Web Crypto (AES-256-GCM + PBKDF2)
+  Offline        Service worker (public/sw.js) guarda app e modelos no aparelho
+  Qualidade      Vitest + fake-indexeddb (58 testes), ESLint
+  Publicação     GitHub Actions → GitHub Pages
 
 
 --------------------------------------------------------------------------------
-4. ARQUITETURA DA APLICAÇÃO
+4. ESTRUTURA DE ARQUIVOS
 --------------------------------------------------------------------------------
 
-A aplicação segue uma arquitetura SPA (Single Page Application) com a lógica
-principal dividida em camadas:
-
-  [Interface]  Index.tsx, CameraCapture, QuickRegister
-       |
-  [Hook]       useFaceRecognition.ts — carrega modelos, monta base, faz matching
-       |
-  [Biblioteca] face-api.js — detecção e descritores faciais
-       |
-  [Dados]      persons.ts — lista inicial de pessoas com fotos
-
-Fluxo de estados da tela principal (Index.tsx):
-
-  camera  -->  result   (quando nenhum rosto é detectado)
-     |
-     +----->  register  (quando o usuário escolhe cadastrar pessoa desconhecida)
-
-Durante o estado "camera", após uma captura com rostos detectados, os
-resultados são exibidos abaixo da câmera sem mudar de tela.
+  src/
+    pages/            FaceSearch (Rosto), IrisCheck (Íris), MarkSearch (Marcas),
+                      Persons (Pessoas): uma por aba
+    components/       câmera (com prova de vida), captura de íris, folha de
+                      comparação e régua de evidência, formulário de pessoa,
+                      editor de marcas, cópia de segurança
+    lib/recognition/  engine (modelos), align (alinhamento por 5 pontos),
+                      arcface, periocular, landmarks (pontos da malha),
+                      quality (laudo da foto), liveness (prova de vida),
+                      match (comparação, fusão e faixas), evidence (régua)
+    lib/iris/         localize, normalize, encode, match, pipeline, verify
+    lib/              db (IndexedDB), backup, marks, migrate, image, text
+    state/            AppState (estado global)
+    test/             testes automáticos
+  public/sw.js        service worker (funcionamento offline)
+  vendor/models/      pesos do ArcFace (copiados para public/models no install)
+  scripts/            copy-models.mjs
 
 
 --------------------------------------------------------------------------------
-5. FUNCIONALIDADES DETALHADAS
+5. FUNCIONALIDADES (ABAS)
 --------------------------------------------------------------------------------
 
-5.1 Captura pela câmera
-  - Acesso via WebRTC (navigator.mediaDevices.getUserMedia)
-  - Suporte a câmera frontal (user) e traseira (environment)
-  - Detecção automática quando o dispositivo possui apenas uma câmera
-  - Resolução ideal: 640x480
-  - Botão para reiniciar o stream da câmera
-
-5.2 Envio de imagem
-  - Formatos aceitos: JPG, JPEG, PNG, WEBP
-  - Validação por MIME type e extensão do arquivo
-  - Pré-visualização da imagem enviada no quadro de análise
-
-5.3 Detecção e identificação de rostos
-  - Detecção de múltiplos rostos por imagem (detectAllFaces)
-  - Caixas delimitadoras (bounding boxes) desenhadas sobre o vídeo/imagem:
-      * Verde  = pessoa identificada
-      * Vermelho = pessoa desconhecida
-  - Exibição do nome e percentual de compatibilidade sobre cada rosto
-  - Lista resumida abaixo da câmera com detalhes de cada resultado
-
-5.4 Cadastro rápido
-  - Disponível para rostos não identificados
-  - Campos: nome completo (obrigatório) e observações (opcional)
-  - A foto capturada é associada ao novo cadastro
-  - O descritor facial é calculado e incluído na base em memória
-
-5.5 Base inicial de pessoas
-  - 12 pessoas pré-cadastradas com fotos em src/assets/persons/
-  - Nomes: Henrique, Isabella, Issaga, Leandro, Leonardo, Letícia, Luciano,
-    Marcelo, Maria Eduarda, Rithiély, Carlos Augusto Bohn, Rodrigo Delduque
+  Rosto     Captura pela câmera (traseira por padrão), captura com prova de
+            vida ou envio de foto. Detecta vários rostos. Para cada um mostra
+            os candidatos numa folha de comparação (fotos alinhadas lado a
+            lado) com régua de evidência. Modo "Rosto coberto, só olhos".
+            Pistas fracas ficam recolhidas.
+  Íris      (Experimental) Foto de perto com orientação ao vivo; conferência
+            com uma ficha (1:1) ou busca em todas (1:N).
+  Marcas    Busca por tatuagens, cicatrizes e sinais (tipo, local, lado, texto).
+  Pessoas   Fichas com nome, apelido, várias fotos de épocas diferentes,
+            amostras de íris e marcas. Cópia de segurança criptografada,
+            registro de uso e exclusão total dos dados.
 
 
 --------------------------------------------------------------------------------
-6. ALGORITMO DE RECONHECIMENTO FACIAL
+6. COMO O RECONHECIMENTO FUNCIONA
 --------------------------------------------------------------------------------
 
-O face-api.js utiliza redes neurais pré-treinadas para:
+6.1 Rosto (Etapa 1)
+  Os 5 pontos do rosto (olhos, nariz, cantos da boca) alinham a foto na posição
+  usada no treino do ArcFace (112×112). O ArcFace gera 512 números; a foto e
+  o espelho dela são somados. Comparação pela similaridade do cosseno.
 
-  1. Detectar rostos na imagem (SSD MobileNet v1)
-  2. Localizar 68 pontos de referência facial (landmarks)
-  3. Gerar um vetor descritor de 128 dimensões (face descriptor)
+6.2 Região dos olhos (Etapa 2)
+  O mesmo ArcFace com tudo abaixo do nariz apagado. Serve para rosto coberto
+  e, com o rosto visível, entra na nota final junto com o rosto (fusão por
+  z-norm, peso 0,35).
 
-A correspondência entre rostos é feita pela distância euclidiana entre os
-descritores. Quanto menor a distância, mais semelhantes são os rostos.
+6.3 Íris (Etapa 3, experimental)
+  Algoritmo de Daugman: localização por operador integro-diferencial,
+  normalização "rubber sheet" (256×32), código log-Gabor de 32.768 bits no
+  canal vermelho, comparação por distância de Hamming com compensação de giro.
+  Laudo de qualidade baseado na ISO/IEC 19794-6 e 29794-6.
 
-Parâmetros configurados (src/lib/faceDescriptorSimilarity.ts):
+6.4 Faixas de semelhança (medidas no LFW, 828.360 pares de pessoas diferentes)
+  Alta   1 erro em 10.000 pares de pessoas diferentes
+  Média  1 em 1.000
+  Baixa  1 em 100 (mínimo exibido; fica recolhida como "pista fraca", com o
+         número de coincidências esperadas para o tamanho da base)
 
-  FACE_MATCH_DISTANCE_THRESHOLD = 0.6
-    - Limiar para considerar um match válido
-    - Distâncias abaixo de 0.6 indicam correspondência no banco
-    - Faixa típica para a mesma pessoa: ~0,15 a 0,5
+6.5 Prova de vida (ativa)
+  "Capturar com prova de vida" acompanha o rosto por até 6 s e só aceita se a
+  pessoa piscar (abertura das pálpebras cai abaixo de 60% e volta acima de
+  85%) ou virar a cabeça (giro de 18° ou mais). Uma foto impressa ou parada
+  numa tela não passa. Um VÍDEO da pessoa exibido numa tela pode passar.
+  Os modelos passivos do Human (antispoof/liveness) foram testados e não
+  detectaram fraudes simuladas, por isso não são usados.
+  O resultado aparece na consulta e no registro de uso:
+    comprovada | não comprovada | não verificada | foto enviada do aparelho
 
-  Percentual de compatibilidade exibido na interface:
-    - Conversão não linear da distância euclidiana para 0–100%
-    - Referência de exibição: 0.88
-    - Curvatura (gamma): 0.28
-    - Fórmula: 100 * ((ref - d) / ref) ^ gamma
-    - Objetivo: apresentar percentuais mais intuitivos ao usuário
-
-Carregamento dos modelos (useFaceRecognition.ts):
-  1. Tenta carregar de public/models/ (local, no deploy)
-  2. Se falhar, usa CDN do repositório oficial do face-api.js no GitHub
+6.6 Qualidade da foto
+  Cada rosto recebe um laudo (boa / aceitável / ruim) com o motivo:
+  distância entre os olhos, rotação, brilho e nitidez.
 
 
 --------------------------------------------------------------------------------
-7. ESTRUTURA DE ARQUIVOS PRINCIPAIS
+7. DADOS E PRIVACIDADE
 --------------------------------------------------------------------------------
 
-reconhecimentofacial-3/
-|
-|-- src/
-|   |-- pages/
-|   |   |-- Index.tsx              Tela principal e orquestração do fluxo
-|   |   |-- NotFound.tsx           Página 404
-|   |
-|   |-- components/
-|   |   |-- CameraCapture.tsx      Câmera, upload e overlay de bounding boxes
-|   |   |-- QuickRegister.tsx      Formulário de cadastro rápido
-|   |   |-- MatchResult.tsx        Componente de resultado (legado/auxiliar)
-|   |   |-- PersonsDatabase.tsx    Visualização da base de pessoas
-|   |   |-- RootErrorBoundary.tsx  Tratamento de erros React
-|   |   |-- ui/                    Componentes shadcn/ui (botões, dialogs, etc.)
-|   |
-|   |-- hooks/
-|   |   |-- useFaceRecognition.ts  Lógica central de IA e matching
-|   |
-|   |-- lib/
-|   |   |-- faceDescriptorSimilarity.ts  Limiar e conversão de distância
-|   |   |-- utils.ts               Utilitários gerais (cn, etc.)
-|   |
-|   |-- data/
-|   |   |-- persons.ts             Interface Person e lista inicial
-|   |
-|   |-- assets/persons/            Fotos das pessoas pré-cadastradas
-|   |-- App.tsx                    Rotas e providers
-|   |-- main.tsx                   Ponto de entrada React
-|
-|-- public/
-|   |-- models/                    Pesos do face-api.js (deploy local)
-|   |-- robots.txt
-|
-|-- docs/                          Build publicado no GitHub Pages
-|-- .github/workflows/
-|   |-- deploy-pages.yml           CI/CD para GitHub Pages
-|
-|-- vite.config.ts                 Configuração Vite (base URL, alias @)
-|-- tailwind.config.ts             Tema e estilos Tailwind
-|-- package.json                   Dependências e scripts
-|-- README.md                      Resumo do projeto
-|-- DOCUMENTACAO.txt               Este arquivo
+  - Base guardada só no navegador do aparelho (IndexedDB).
+  - Guarda-se o recorte do rosto, o recorte alinhado e os vetores; não a foto
+    inteira (minimização de dados).
+  - Cópia de segurança com AES-256-GCM e chave derivada da senha (PBKDF2-SHA256,
+    310 mil iterações). Sem a senha o arquivo não abre.
+  - Registro de uso das últimas 1.000 ações (consultas, cadastros, exportações).
+  - Ao trocar de modelo, as fichas são recalculadas sozinhas a partir das fotos
+    guardadas (src/lib/migrate.ts); ninguém precisa recadastrar.
+  - Dados biométricos são dados sensíveis pela LGPD (art. 5º, II e art. 11).
 
 
 --------------------------------------------------------------------------------
 8. COMO INSTALAR E EXECUTAR
 --------------------------------------------------------------------------------
 
-Requisitos:
-  - Node.js 18 ou superior
-  - Navegador com suporte a WebRTC (getUserMedia) para uso da câmera
-  - Conexão com internet na primeira carga (se modelos locais não existirem)
+  Requisitos: Node.js 18+; navegador com câmera (WebRTC). A câmera só funciona
+  em localhost ou HTTPS.
 
-Instalação:
-
-  npm install
-
-Desenvolvimento:
-
-  npm run dev
-
-  A aplicação abre em http://localhost:8080
-
-Build de produção:
-
-  npm run build
-
-  Gera a pasta dist/ com index.html, 404.html e .nojekyll (GitHub Pages)
-
-Preview do build:
-
-  npm run preview
-
-Outros comandos:
-
-  npm run lint        Verificação ESLint
-  npm test            Testes unitários (Vitest)
-  npm run test:watch  Testes em modo watch
+    npm install       instala dependências e copia os modelos para public/models
+    npm run dev       http://localhost:8080
+    npm run build     build de produção em dist/
+    npm run preview   serve o build localmente
+    npm test          testes automáticos
+    npm run lint      ESLint
 
 
 --------------------------------------------------------------------------------
-9. DEPLOY (GITHUB PAGES)
+9. PUBLICAÇÃO (GITHUB PAGES)
 --------------------------------------------------------------------------------
 
-O projeto está configurado para publicação em:
-
-  https://<usuario>.github.io/reconhecimentofacial/
-
-Configuração:
-  - base URL em produção: /reconhecimentofacial/ (vite.config.ts)
-  - Workflow: .github/workflows/deploy-pages.yml
-  - A cada push na branch main (exceto alterações só em docs/), o CI:
-      1. Instala dependências (npm ci)
-      2. Executa npm run build
-      3. Copia dist/ para a pasta docs/ na branch main
-
-No GitHub: Settings → Pages → Deploy from branch → main → /docs
+  Endereço: https://iago-matos.github.io/reconhecimentofacial/
+  Cada push na branch main roda lint, testes e build e publica
+  (.github/workflows/deploy-pages.yml). Configuração única no GitHub:
+  Settings → Pages → Source → GitHub Actions.
+  O caminho base (/reconhecimentofacial/) está em vite.config.ts.
 
 
 --------------------------------------------------------------------------------
-10. INTERFACE DO USUÁRIO
+10. FUNCIONAMENTO OFFLINE E DOWNLOAD
 --------------------------------------------------------------------------------
 
-Layout mobile-first, largura máxima ~28rem, com:
-
-  Cabeçalho fixo:
-    - Ícone de escudo (Shield)
-    - Título: "PMSC — São José"
-    - Subtítulo: "Sistema de Reconhecimento Facial"
-
-  Área principal:
-    - Seletor de câmera (Frontal / Traseira)
-    - Quadro 4:3 com cantos destacados e animação de scan durante análise
-    - Botões: Capturar, Reiniciar câmera, Enviar imagem
-    - Resultados com cards verdes (identificado) ou vermelhos (desconhecido)
-
-  Rodapé:
-    - "Polícia Militar de Santa Catarina — Uso Restrito"
-
-Estados de carregamento:
-  - "Carregando modelos de reconhecimento..."
-  - "Preparando base de rostos cadastrados..."
-  - Mensagem de erro com botão "Tentar novamente" se modelos falharem
+  Na primeira abertura o app baixa cerca de 18 MB de modelos (ArcFace 13 MB,
+  malha e íris 4,3 MB, detector 0,6 MB). O service worker guarda tudo no
+  aparelho: nas próximas vezes o app abre sem internet e não baixa de novo.
+  A cópia do app é renovada a cada publicação; a dos modelos só quando
+  MODELS_VERSION mudar em public/sw.js.
+  Recomenda-se celular razoavelmente moderno (com WebGL). No iPhone, "Adicionar
+  à Tela de Início" evita que o Safari apague os dados após dias sem uso.
 
 
 --------------------------------------------------------------------------------
-11. MODELO DE DADOS
+11. TESTES
 --------------------------------------------------------------------------------
 
-Interface Person (src/data/persons.ts):
-
-  id: string              Identificador único
-  name: string            Nome completo
-  imageSrc: string        URL ou data URL da foto
-  notes?: string          Observações opcionais
-  registeredAt: string    Data de cadastro (YYYY-MM-DD)
-  additionalPhotos?: string[]  Fotos adicionais (campo reservado)
-
-Durante o runtime, cada pessoa também possui um descritor facial (Float32Array
-de 128 elementos) armazenado em memória no hook useFaceRecognition.
+  58 testes automáticos (npm test): geometria, pontos da malha, íris com olhos
+  sintéticos, comparação e fusão, régua de evidência, prova de vida, migração,
+  banco local, cópia de segurança e marcas.
+  Avaliação de precisão com o pipeline real no navegador sobre o LFW
+  (metodologia e resultados em BIOMETRIA.md).
 
 
 --------------------------------------------------------------------------------
-12. LIMITAÇÕES E CONSIDERAÇÕES
+12. LIMITAÇÕES
 --------------------------------------------------------------------------------
 
-  - Dados não persistem: cadastros feitos na sessão são perdidos ao recarregar
-  - Processamento 100% client-side: performance depende do dispositivo
-  - Qualidade da identificação varia com iluminação, ângulo e resolução
-  - O percentual exibido é uma escala visual, não probabilidade estatística
-  - Requer permissão de câmera no navegador
-  - Modelos de IA têm tamanho considerável (~vários MB) na primeira carga
-  - Projeto acadêmico — não substitui sistemas biométricos certificados
-
-
---------------------------------------------------------------------------------
-13. TESTES
---------------------------------------------------------------------------------
-
-Testes unitários:
-  - Framework: Vitest
-  - Arquivo exemplo: src/test/example.test.ts
-  - Comando: npm test
-
-Testes E2E:
-  - Playwright configurado (playwright.config.ts, playwright-fixture.ts)
-  - Pode ser expandido para fluxos de captura e cadastro
+  - Íris não validada com olhos reais; limiares provisórios. Em luz comum,
+    olhos castanhos/escuros são o caso mais difícil.
+  - Limiares de rosto medidos no LFW (fotos de famosos, boa luz): recalibrar
+    com fotos reais de rua e de noite.
+  - Prova de vida ativa não detecta vídeo exibido numa tela.
+  - Com máscara, o rosto não é detectado em cerca de 14% das fotos.
+  - ArcFace treinado com dados de uso acadêmico/não comercial
+    (vendor/models/LEIA-ME.md).
+  - iPhone/Safari: sem foto em resolução total do sensor; lanterna e zoom
+    podem não funcionar.
+  - Base presa ao aparelho: use a cópia de segurança.
+  - Projeto acadêmico: não substitui sistemas biométricos certificados.
 
 
 --------------------------------------------------------------------------------
-14. LICENÇA E USO
+13. LICENÇA E USO
 --------------------------------------------------------------------------------
 
-Projeto acadêmico desenvolvido no contexto da Polícia Militar de Santa
-Catarina (PMSC). Uso restrito conforme definido na aplicação e no contexto
-institucional dos autores.
+Projeto acadêmico da Faculdade Municipal de Palhoça, no contexto da PMSC.
+Uso restrito conforme o contexto institucional dos autores.
 
 ================================================================================
                             Fim da documentação

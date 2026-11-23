@@ -8,7 +8,7 @@ import { Button, Card, Notice, SectionTitle, Spinner } from "@/components/ui";
 import { useApp } from "@/state/AppState";
 import { IRIS_BAND_LABEL, formatHd, searchIris, verifyIris, type IrisVerdict } from "@/lib/iris/verify";
 import { probeEyes, toIrisSamples, usableEyes } from "@/lib/iris/samples";
-import { BAND_LABEL, formatSimilarity, rankCandidates } from "@/lib/recognition/match";
+import { BAND_LABEL, formatSimilarity, rankCandidates, splitCandidates } from "@/lib/recognition/match";
 import type { IrisCaptureResult } from "@/lib/recognition/engine";
 import type { IrisBand } from "@/lib/iris/match";
 import { EYE_LABEL, IRIS_MODEL_ID, displayName, type Person } from "@/lib/types";
@@ -44,7 +44,9 @@ export default function IrisCheck({ active }: { active: boolean }) {
   const faceCandidates = useMemo(() => {
     if (!result?.face) return [];
     const probe = { face: result.face.face, periocular: result.face.periocular };
-    return rankCandidates(probe, target ? [target] : persons, { minimum: target ? -Infinity : undefined });
+    if (target) return rankCandidates(probe, [target], { minimum: -Infinity });
+    // Busca em toda a base: só candidatos de semelhança média ou alta (pistas fracas são, em geral, coincidência).
+    return splitCandidates(rankCandidates(probe, persons)).strong;
   }, [result, target, persons]);
 
   const onResult = (r: IrisCaptureResult) => {
@@ -81,7 +83,7 @@ export default function IrisCheck({ active }: { active: boolean }) {
       </Card>
     );
   }
-  if (engine === "carregando") return <Spinner label="Carregando modelos…" />;
+  if (engine === "carregando") return <Spinner label="Carregando modelos de reconhecimento. Na primeira vez são cerca de 18 MB; depois ficam guardados no aparelho." />;
 
   if (!result) {
     return (
@@ -195,7 +197,7 @@ export default function IrisCheck({ active }: { active: boolean }) {
         <Card className="space-y-2">
           <h3 className="text-base">Rosto e olhos (mesma foto, alta resolução)</h3>
           {faceCandidates.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Nenhum candidato parecido pelo rosto.</p>
+            <p className="text-sm text-muted-foreground">Ninguém com semelhança média ou alta pelo rosto.</p>
           ) : (
             <ul className="space-y-1 text-sm">
               {faceCandidates.map((c) => (

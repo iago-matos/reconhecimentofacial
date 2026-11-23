@@ -130,6 +130,25 @@ export function rankCandidates(
   return result.sort((a, b) => b.score - a.score).slice(0, opts.limit ?? MAX_CANDIDATES);
 }
 
+/** Taxa de falso positivo no limiar mínimo de exibição (faixa "baixa"), medida na calibração. */
+export const MINIMUM_FMR = 0.01;
+
+/**
+ * Quantas pessoas ERRADAS devem passar do limiar mínimo, por puro acaso, numa consulta
+ * contra uma base de `n` fichas (n × taxa de falso positivo).
+ */
+export function expectedChanceMatches(n: number, fmr: number = MINIMUM_FMR): number {
+  return Math.max(0, n) * fmr;
+}
+
+/**
+ * Separa candidatos fortes (alta/média) de pistas fracas (baixa). As fracas ficam recolhidas na tela:
+ * numa base grande, a maioria delas é coincidência.
+ */
+export function splitCandidates(c: Candidate[]): { strong: Candidate[]; weak: Candidate[] } {
+  return { strong: c.filter((x) => x.band !== "baixa"), weak: c.filter((x) => x.band === "baixa") };
+}
+
 /** Formata 0,7234 como "0,72". */
 export function formatSimilarity(s: number): string {
   return s.toFixed(2).replace(".", ",");

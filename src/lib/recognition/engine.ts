@@ -7,6 +7,7 @@ import { ARCFACE_MODEL, embedAligned, loadArcface, type InputNorm } from "@/lib/
 import type { Pt } from "@/lib/recognition/geometry";
 import { eyeAnchor, interEyeDistance, landmarksFromMesh, mapLandmarks, type EyeSide, type FaceLandmarks } from "@/lib/recognition/landmarks";
 import { maskBelow, PERIOCULAR_MASK_ROW, STRIP_H, STRIP_W, stripTransform, textureDescriptor } from "@/lib/recognition/periocular";
+import { faceEAR } from "@/lib/recognition/liveness";
 import { gradeFace, type FaceQuality } from "@/lib/recognition/quality";
 import { FACE_MODEL_ID, PERIOCULAR_MODEL_ID, type Template } from "@/lib/types";
 
@@ -30,6 +31,9 @@ const config: Partial<Config> = {
     iris: { enabled: true },
     emotion: { enabled: false },
     description: { enabled: false },
+    // Os modelos passivos de prova de vida do Human (antispoof/liveness) foram testados e NÃO detectaram
+    // fotos de tela nem impressas simuladas, além de dar alarme falso em 2–12% das fotos reais.
+    // A prova de vida usada é ativa (piscar / virar o rosto): ver lib/recognition/liveness.ts.
     antispoof: { enabled: false },
     liveness: { enabled: false },
     attention: { enabled: false },
@@ -198,6 +202,27 @@ export async function templatesFromImage(dataUrl: string): Promise<DetectedFace 
   c.height = img.naturalHeight;
   c.getContext("2d")!.drawImage(img, 0, 0);
   return (await detectMainFace(c)).face;
+}
+
+// ---------------------------------------------------------------- prova de vida ativa
+
+/**
+ * Um quadro do desafio de prova de vida: abertura dos olhos e giro da cabeça do maior rosto.
+ * Só detector + malha (sem ArcFace), numa cópia pequena do vídeo, para rodar várias vezes por segundo.
+ */
+export async function livenessSample(video: HTMLVideoElement): Promise<{ ear: number; yaw: number } | null> {
+  const human = await loadEngine();
+  if (!video.videoWidth) return null;
+  const k = Math.min(1, 480 / video.videoWidth);
+  const c = document.createElement("canvas");
+  c.width = Math.round(video.videoWidth * k);
+  c.height = Math.round(video.videoHeight * k);
+  c.getContext("2d")!.drawImage(video, 0, 0, c.width, c.height);
+  const r = await human.detect(c);
+  const f = r.face.reduce<FaceResult | null>((big, x) => (!big || x.box[2] * x.box[3] > big.box[2] * big.box[3] ? x : big), null);
+  const lm = f ? landmarksFromMesh(f.mesh) : null;
+  if (!f || !lm) return null;
+  return { ear: faceEAR(lm), yaw: (f.rotation?.angle.yaw ?? 0) * DEG };
 }
 
 // ---------------------------------------------------------------- etapa 3: íris

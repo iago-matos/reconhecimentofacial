@@ -9,7 +9,8 @@ import { useApp } from "@/state/AppState";
 import { formatMark } from "@/lib/marks";
 import { detectFaces, type DetectedFace } from "@/lib/recognition/engine";
 import { FACE_CAPTION, FACE_TICKS, faceRulerPosition } from "@/lib/recognition/evidence";
-import { BAND_LABEL, formatSimilarity, rankCandidates, type Candidate, type MatchMode } from "@/lib/recognition/match";
+import { BAND_LABEL, expectedChanceMatches, formatSimilarity, rankCandidates, splitCandidates, type Candidate, type MatchMode } from "@/lib/recognition/match";
+import { LIVENESS_TEXT, type LivenessStatus } from "@/lib/recognition/liveness";
 import { GRADE_LABEL } from "@/lib/recognition/quality";
 import { displayName, newId, today, type FacePhoto } from "@/lib/types";
 
@@ -18,6 +19,7 @@ interface Analysis {
   width: number;
   height: number;
   faces: DetectedFace[];
+  liveness: LivenessStatus;
 }
 
 function toPhoto(face: DetectedFace): FacePhoto {
@@ -43,22 +45,22 @@ export default function FaceSearch({ active }: { active: boolean }) {
     [analysis, persons, mode],
   );
 
-  const analyze = async (canvas: HTMLCanvasElement) => {
+  const analyze = async (canvas: HTMLCanvasElement, liveness: LivenessStatus) => {
     const src = canvas.toDataURL("image/jpeg", 0.9);
-    setAnalysis({ src, width: canvas.width, height: canvas.height, faces: [] });
+    setAnalysis({ src, width: canvas.width, height: canvas.height, faces: [], liveness });
     setConfirmed({});
     setError("");
     setAnalyzing(true);
     try {
       const faces = await detectFaces(canvas);
-      setAnalysis({ src, width: canvas.width, height: canvas.height, faces });
+      setAnalysis({ src, width: canvas.width, height: canvas.height, faces, liveness });
       const best = faces
         .map((f) => rankCandidates(f, persons, { mode, limit: 1 })[0])
         .filter(Boolean)
         .map((c) => `${displayName(c.person)} (${BAND_LABEL[c.band].toLowerCase()})`);
       log(
         "consulta_rosto",
-        `${faces.length} rosto(s), modo ${mode}${best.length ? `; mais parecido: ${best.join(", ")}` : "; sem candidatos"}`,
+        `${faces.length} rosto(s), modo ${mode}, prova de vida: ${liveness.kind}${best.length ? `; mais parecido: ${best.join(", ")}` : "; sem candidatos"}`,
       );
     } catch (e) {
       setError(`Falha na análise: ${e instanceof Error ? e.message : String(e)}`);
@@ -100,7 +102,7 @@ export default function FaceSearch({ active }: { active: boolean }) {
       </Card>
     );
   }
-  if (engine === "carregando") return <Spinner label="Carregando modelos de reconhecimento…" />;
+  if (engine === "carregando") return <Spinner label="Carregando modelos de reconhecimento. Na primeira vez são cerca de 18 MB; depois ficam guardados no aparelho." />;
 
   if (registerFace !== null && analysis?.faces[registerFace]) {
     const face = analysis.faces[registerFace];
@@ -130,7 +132,7 @@ export default function FaceSearch({ active }: { active: boolean }) {
             Atualizando a base para o novo modelo de reconhecimento ({upgrade.done}/{upgrade.total} fichas)…
           </Notice>
         )}
-        {active && <CameraPanel onImage={(c) => void analyze(c)} disabled={analyzing} />}
+        {active && <CameraPanel onImage={(c, l) => void analyze(c, l)} disabled={analyzing} />}
         <ModeToggle mode={mode} onChange={setMode} />
       </div>
     );
@@ -164,6 +166,7 @@ export default function FaceSearch({ active }: { active: boolean }) {
 
       {analysis.faces.length > 0 && (
         <>
+          <LivenessNotice status={analysis.liveness} />
           <ModeToggle mode={mode} onChange={setMode} />
           <Notice tone="warn">
             <b>Resultado indicativo, não é prova de identidade.</b> Compare as fotos e confirme por outros meios (documento,
@@ -191,22 +194,23 @@ export default function FaceSearch({ active }: { active: boolean }) {
             </Notice>
           ) : (
             <>
-              {candidates[i].length === 0 && <p className="text-muted-foreground">Ninguém parecido na base deste aparelho.</p>}
-              <ol className="space-y-3">
-                {candidates[i].map((c, k) => (
+              <CandidateList
+                candidates={candidates[i]}
+                baseSize={persons.length}
+                render={(c, k, defaultOpen) => (
                   <CandidateSheet
                     key={c.person.id}
                     c={c}
                     rank={k + 1}
                     mode={mode}
                     face={face}
-                    defaultOpen={k === 0}
+                    defaultOpen={defaultOpen}
                     onOpen={() => go("pessoas", c.person.id)}
                     onConfirm={() => void confirm(i, c)}
                     onIris={() => go("iris", c.person.id)}
                   />
-                ))}
-              </ol>
+                )}
+              />
               <Button className="w-full" onClick={() => setRegisterFace(i)}>
                 <UserPlus className="h-4 w-4" /> {candidates[i].length ? "Não é nenhum destes: cadastrar" : "Cadastrar nova pessoa"}
               </Button>
@@ -330,6 +334,65 @@ function ModeToggle({ mode, onChange }: { mode: MatchMode; onChange: (m: MatchMo
           {label}
         </button>
       ))}
+    </div>
+  );
+}
+
+function LivenessNotice({ status }: { status: LivenessStatus }) {
+  if (status.kind === "comprovada")
+    return (
+      <Notice tone="ok">
+        {LIVENESS_TEXT.comprovada}: a pessoa {status.method === "piscada" ? "piscou" : "virou o rosto"} diante da câmera.
+      </Notice>
+    );
+  return <Notice tone={status.kind === "nao_comprovada" ? "warn" : "info"}>{LIVENESS_TEXT[status.kind]}</Notice>;
+}
+
+/**
+ * Candidatos fortes (alta/média) aparecem direto; pistas fracas (baixa) ficam recolhidas,
+ * com o aviso de quantas coincidências são esperadas para o tamanho da base.
+ */
+function CandidateList({
+  candidates,
+  baseSize,
+  render,
+}: {
+  candidates: Candidate[];
+  baseSize: number;
+  render: (c: Candidate, index: number, defaultOpen: boolean) => React.ReactNode;
+}) {
+  const [showWeak, setShowWeak] = useState(false);
+  const { strong, weak } = splitCandidates(candidates);
+  const chance = expectedChanceMatches(baseSize);
+  const chanceText =
+    chance < 1
+      ? `Numa base de ${baseSize} fichas, menos de 1 pessoa errada chega a esse nível por acaso em cada consulta.`
+      : `Numa base de ${baseSize} fichas, cerca de ${Math.round(chance)} pessoa${Math.round(chance) > 1 ? "s erradas chegam" : " errada chega"} a esse nível por acaso em cada consulta.`;
+  return (
+    <div className="space-y-3">
+      {candidates.length === 0 && <p className="text-muted-foreground">Ninguém parecido na base deste aparelho.</p>}
+      {strong.length === 0 && weak.length > 0 && <p className="text-muted-foreground">Ninguém com semelhança média ou alta.</p>}
+      {strong.length > 0 && <ol className="space-y-3">{strong.map((c, k) => render(c, k, k === 0))}</ol>}
+      {weak.length > 0 && (
+        <div className="space-y-2">
+          <button
+            className="flex min-h-11 w-full items-center justify-between gap-2 rounded-lg border border-dashed border-muted-foreground/40 px-3 py-2 text-left text-sm text-muted-foreground hover:text-foreground"
+            onClick={() => setShowWeak((v) => !v)}
+            aria-expanded={showWeak}
+          >
+            <span>
+              {showWeak ? "Esconder" : "Mostrar"} {weak.length === 1 ? "1 pista fraca" : `${weak.length} pistas fracas`}
+            </span>
+            <ChevronDown className={`h-4 w-4 shrink-0 transition-transform ${showWeak ? "rotate-180" : ""}`} aria-hidden />
+          </button>
+          {showWeak && (
+            <>
+              <p className="text-sm text-muted-foreground">{chanceText} Use só para investigar, nunca para abordar.</p>
+              <ol className="space-y-3">{weak.map((c, k) => render(c, strong.length + k, false))}</ol>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 }

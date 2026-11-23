@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CALIBRATION, SCORE_BANDS, bandFor, cosineSimilarity, formatSimilarity, fuseScores, rankCandidates } from "@/lib/recognition/match";
+import { CALIBRATION, SCORE_BANDS, bandFor, cosineSimilarity, expectedChanceMatches, formatSimilarity, fuseScores, rankCandidates, splitCandidates } from "@/lib/recognition/match";
 import { LEGACY_FACE_MODEL_ID } from "@/lib/types";
 import { person, probeOf } from "./fixtures";
 
@@ -70,5 +70,25 @@ describe("faixas", () => {
       expect(bandFor(t.media - 0.01, mode)).toBe("baixa");
     }
     expect(formatSimilarity(0.7234)).toBe("0,72");
+  });
+});
+
+describe("pistas fracas em base grande", () => {
+  it("coincidências esperadas crescem com o tamanho da base (1 em 100 no mínimo)", () => {
+    expect(expectedChanceMatches(50)).toBeCloseTo(0.5);
+    expect(expectedChanceMatches(1000)).toBeCloseTo(10);
+    expect(expectedChanceMatches(-3)).toBe(0);
+  });
+  it("separa candidatos fortes (alta/média) das pistas fracas (baixa)", () => {
+    const probe = probeOf([1, 0, 0]);
+    // Similaridades escolhidas para cair em cada faixa do modo completo.
+    const sim = (z: number) => CALIBRATION.face.mean + z * CALIBRATION.face.std;
+    const vec = (s: number) => [s, Math.sqrt(1 - s * s), 0];
+    const strong = person("forte", [vec(sim(6))], [], "forte", [vec(CALIBRATION.periocular.mean + 6 * CALIBRATION.periocular.std)]);
+    const weak = person("fraca", [vec(sim(2.6))], [], "fraca", [vec(CALIBRATION.periocular.mean + 2.6 * CALIBRATION.periocular.std)]);
+    const r = rankCandidates(probe, [weak, strong]);
+    const { strong: s, weak: w } = splitCandidates(r);
+    expect(s.map((c) => c.person.id)).toEqual(["forte"]);
+    expect(w.map((c) => c.person.id)).toEqual(["fraca"]);
   });
 });

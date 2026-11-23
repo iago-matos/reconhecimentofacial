@@ -18,7 +18,7 @@ Projeto acadêmico da Faculdade Municipal de Palhoça, pensado para o contexto d
 
 | Aba | O que faz ?|
 | --- | --- |
-| **Rosto** | Captura pela câmera (frontal/traseira) ou envio de imagem (JPG, PNG, WEBP). Detecta vários rostos na mesma foto e, para cada um, lista os **5 candidatos mais parecidos** com faixa de semelhança (alta / média / baixa), a similaridade do rosto e dos olhos e um **laudo de qualidade** da foto. Modo **"rosto coberto"** compara só a região dos olhos (máscara, balaclava). |
+| **Rosto** | Captura pela câmera (frontal/traseira) ou envio de imagem (JPG, PNG, WEBP). Detecta vários rostos na mesma foto e, para cada um, lista os **5 candidatos mais parecidos** com faixa de semelhança (alta / média / baixa), a similaridade do rosto e dos olhos e um **laudo de qualidade** da foto. Modo **"rosto coberto"** compara só a região dos olhos (máscara, balaclava). **Captura com prova de vida**: a pessoa precisa piscar ou virar o rosto. Pistas fracas ficam recolhidas, com o número de coincidências esperadas para o tamanho da base. |
 | **Íris** *(experimental)* | Foto de perto com a câmera traseira em resolução máxima, com orientação ao vivo ("aproxime mais"), lanterna e zoom. Confere a íris com uma ficha (1:1) ou busca em todas (1:N), mostrando o olho capturado ao lado do cadastrado. |
 | **Marcas** | Busca por tipo de marca, região do corpo, lado e descrição livre ("carpa colorida no antebraço"). Funciona mesmo sem foto do rosto. |
 | **Pessoas** | Cadastro com nome, apelido, observações, **várias fotos de épocas diferentes**, **amostras de íris** e marcas corporais. Backup criptografado, registro de uso e exclusão total dos dados. |
@@ -46,7 +46,8 @@ Títulos em Barlow Semi Condensed (desenho inspirado em placas de rodovia) e tex
 - **Várias fotos por pessoa.** A comparação usa a foto mais parecida de cada ficha, o que ajuda com envelhecimento e mudanças de aparência.
 - **Vetores versionados.** Cada embedding guarda o modelo que o gerou; vetores de modelos diferentes nunca são comparados. Quando o modelo muda, a base é **recalculada sozinha** a partir das fotos guardadas.
 - **Limiares medidos, não chutados.** Faixas definidas pela taxa de falso positivo medida no LFW (828 mil pares de pessoas diferentes) — ver [BIOMETRIA.md](BIOMETRIA.md).
-- **Registro de uso** das consultas, cadastros e exportações (últimos 1.000 eventos).
+- **Registro de uso** das consultas, cadastros e exportações (últimos 1.000 eventos), incluindo o resultado da prova de vida.
+- **Funciona offline.** Um service worker ([public/sw.js](public/sw.js)) guarda o app e os ~18 MB de modelos no aparelho na primeira abertura.
 
 ## Como funciona o reconhecimento
 
@@ -102,6 +103,7 @@ src/
 │   │                     · landmarks · quality · match (fusão e faixas)
 │   ├── iris/             Etapa 3: localize · normalize · encode · match · pipeline · verify
 │   ├── migrate.ts        atualização automática da base quando o modelo muda
+│   ├── recognition/liveness.ts  prova de vida ativa (piscar / virar o rosto)
 │   ├── marks.ts          busca por marcas corporais
 │   ├── db.ts             IndexedDB
 │   ├── backup.ts         exportação/importação criptografada
@@ -138,6 +140,7 @@ Cada push na `main` roda lint, testes e build, e publica no GitHub Pages ([workf
 - Os limiares de rosto foram medidos no LFW (fotos de famosos, boa luz); precisam ser recalibrados com pares reais nas condições de uso (rua, noite, celular da viatura).
 - **Íris em luz visível é experimental**: funciona pior que leitores infravermelhos, principalmente em olhos castanhos/escuros, e os limiares ainda não foram calibrados com olhos reais. Use só como confirmação. A Etapa 4 (leitor NIR) está descrita em [BIOMETRIA.md](BIOMETRIA.md).
 - O modelo ArcFace foi treinado com dados liberados para pesquisa/uso não comercial ([vendor/models/LEIA-ME.md](vendor/models/LEIA-ME.md)).
+- A prova de vida é ativa (piscar ou virar o rosto): barra foto impressa e foto parada numa tela, mas **não** um vídeo exibido numa tela.
 - O desempenho depende do aparelho; iluminação, ângulo e resolução afetam o resultado.
 - A base existe só no navegador em que foi criada — use o backup criptografado para transferir.
 

@@ -56,6 +56,22 @@ Arquivos: [src/lib/iris/](src/lib/iris/), tela [IrisCheck.tsx](src/pages/IrisChe
 
 **Limitação conhecida**: em luz visível a melanina esconde a textura de íris castanhas e escuras (NIST IREX IX) — justamente a maioria da população atendida. Por isso a íris aparece como **confirmação** ao lado do rosto, nunca sozinha, e os limiares (HD ≤ 0,30 forte, ≤ 0,36 moderada) **não foram calibrados com olhos reais**.
 
+## Prova de vida
+
+A biblioteca Human traz dois modelos passivos, que olham uma única foto: `antispoof` e `liveness`. Eles foram testados antes de entrar no app:
+
+| Teste | antispoof (< 0,5 = falso) | liveness (< 0,5 = falso) |
+| --- | --- | --- |
+| 400 fotos reais (LFW): alarme falso | 11,8% | 1,8% |
+| 137 fotos exibidas numa tela de celular (simuladas): detectadas | 0,7% | 0% |
+| 150 fotos impressas fotografadas (simuladas): detectadas | 4,7% | 4,0% |
+
+Os dois quase não detectaram as fraudes simuladas e ainda geram alarme falso. As simulações (moiré, borda de tela, papel, reflexo) não são ataques reais, mas o resultado basta para não confiar nesses modelos. Por isso eles **não são usados**.
+
+O app usa **prova de vida ativa** ([liveness.ts](src/lib/recognition/liveness.ts)): por até 6 s a câmera acompanha a abertura das pálpebras (*eye aspect ratio*, Soukupová & Čech, 2016) e o giro da cabeça. Ela aceita uma piscada completa (abertura abaixo de 60% da típica e volta acima de 85%) ou um giro de 18° ou mais. Uma foto impressa ou parada numa tela não passa; um **vídeo** da pessoa exibido numa tela pode passar.
+
+Cada consulta registra o resultado: comprovada, não comprovada, não verificada (captura simples) ou foto enviada do aparelho.
+
 ## Avaliação (LFW, no próprio navegador)
 
 Método: o **próprio pipeline do app** rodando no Chrome (WebGL) sobre 700 pares sorteados do LFW (*Labeled Faces in the Wild*), totalizando 1 288 fotos. Foram comparadas **todas** as combinações de fotos: 468 pares da mesma pessoa e 828 360 de pessoas diferentes. Isso permite medir taxas de falso positivo de até 1 em 10 000.
